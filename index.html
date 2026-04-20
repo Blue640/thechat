@@ -167,7 +167,7 @@
 
         function playRadioSound(fileName) {
             if (!audioCtx) return;
-            const audio = new Audio(`./${fileName}.mp3`); 
+            const audio = new Audio(`./${fileName}.wav`); 
             const source = audioCtx.createMediaElementSource(audio);
             source.connect(radioFilter); 
             audio.play().catch(() => {});
