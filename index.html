@@ -285,11 +285,25 @@
 
             chatRef = db.ref(`tact/ch_${curCH}/co_${curCODE}`);
             chatRef.on('value', snap => {
-                const msg = snap.val();
-                if (isFirst) { isFirst = false; ui.stat.innerText = "STANDBY"; return; }
-                playSpeech(msg);
-            });
-        }
+    const data = snap.val();
+    
+    // Если данных нет или это первая загрузка — просто выходим
+    if (!data || isFirst) { 
+        isFirst = false; 
+        ui.stat.innerText = "STANDBY"; 
+        return; 
+    }
+
+    // Собираем уникальный ID из пришедших данных
+    const msgText = data.text || "";
+    const msgTime = data.time || 0;
+    const msgId = msgText + "_" + msgTime;
+
+    // ГЛАВНАЯ ПРОВЕРКА: если ID сообщения не совпадает с нашим последним отправленным
+    if (msgId !== myLast) {
+        playSpeech(msgText); // Читаем ТОЛЬКО текст, а не весь объект!
+    }
+});
 
         ui.chKnob.onclick = () => {
             curCH = (curCH + 1) % FREQS.length;
@@ -308,17 +322,27 @@ ui.ptt.onclick = () => {
     if (val && !isReceiving) {
         playTone('radioon');
         
-        const timestamp = Date.now(); // Создаем уникальный штамп времени
-        myLast = val + "_" + timestamp; // Запоминаем уникальный ID сообщения
+        const timestamp = Date.now();
+        // Запоминаем ID нашего сообщения ПЕРЕД отправкой
+        myLast = val + "_" + timestamp; 
         
         ui.txLed.classList.add('active-tx');
         ui.stat.innerText = "TRANSMIT";
 
-        // Отправляем объект, а не просто строку
+        // Отправляем объект в Firebase
         chatRef.set({
             text: val,
             time: timestamp
         });
+
+        ui.input.value = '';
+
+        setTimeout(() => { 
+            ui.txLed.classList.remove('active-tx');
+            ui.stat.innerText = "STANDBY"; 
+        }, 1200);
+    }
+};
 
         ui.input.value = '';
 
