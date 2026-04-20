@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>TheChat GMRS-R7 </title>
+    <title>TheChat GMRS-R7 Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -122,19 +122,18 @@
         let audioCtx = null;
         let noiseGain = null;
         let radioFilter = null;
+        let isFirstLoad = true; // ПЕРЕМЕННАЯ ДЛЯ ПРЕДОТВРАЩЕНИЯ ЛОЖНОГО СТАРТА
 
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
-            // Фильтр рации (Bandpass) - обрезает лишнее для реализма
             radioFilter = audioCtx.createBiquadFilter();
             radioFilter.type = "bandpass";
             radioFilter.frequency.value = 1200;
             radioFilter.Q.value = 0.8;
             radioFilter.connect(audioCtx.destination);
 
-            // Генератор фонового шума
             noiseGain = audioCtx.createGain();
             noiseGain.gain.value = 0;
             const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
@@ -146,39 +145,36 @@
             source.start();
         }
 
-        // ФУНКЦИЯ ВОСПРОИЗВЕДЕНИЯ ТВОИХ ЗВУКОВ
         function playRadioSound(fileName) {
             if (!audioCtx) return;
-            // Путь к файлу в твоем репозитории
-            const audio = new Audio(`./${fileName}.wav`); 
+            const audio = new Audio(`./${fileName}.mp3`); 
             const source = audioCtx.createMediaElementSource(audio);
-            source.connect(radioFilter); // Пропускаем звук через фильтр рации
-            audio.play();
+            source.connect(radioFilter); 
+            audio.play().catch(e => console.log("Sound play prevented or missing file"));
         }
 
         function playRadioSpeech(text) {
-            if (isReceiving) return;
+            if (isReceiving || !text) return;
             isReceiving = true;
             ui.status.innerText = "RECEIVING...";
             
-            // 1. Звук ВКЛЮЧЕНИЯ рации
             playRadioSound('radioon');
             
-            // 2. Легкий шум эфира ("хилак")
-            setTimeout(() => { noiseGain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.1); }, 100);
+            setTimeout(() => { 
+                if(noiseGain) noiseGain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.1); 
+            }, 100);
 
             setTimeout(() => {
                 const utter = new SpeechSynthesisUtterance(text);
                 const voices = window.speechSynthesis.getVoices();
                 utter.voice = voices.find(v => v.lang === 'ru-RU') || voices[0];
                 utter.lang = 'ru-RU';
-                utter.pitch = 0.7; // Грубый голос
+                utter.pitch = 0.7;
                 utter.rate = 1.0;
 
                 utter.onend = () => {
-                    // 3. Звук ВЫКЛЮЧЕНИЯ рации
                     playRadioSound('radiooff');
-                    noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+                    if(noiseGain) noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
                     
                     setTimeout(() => {
                         ui.status.innerText = "STANDBY";
@@ -192,6 +188,9 @@
         function changeChannel(delta) {
             initAudio();
             if (chatRef) chatRef.off();
+            
+            isFirstLoad = true; // Сбрасываем при каждой смене канала
+            
             currentChannelIndex = (currentChannelIndex + delta + CHANNELS.length) % CHANNELS.length;
             const chan = CHANNELS[currentChannelIndex];
             ui.chanNum.innerText = chan.id;
@@ -200,27 +199,33 @@
             ui.knob.style.transform = `rotate(${currentChannelIndex * 60}deg)`;
 
             chatRef = db.ref(`radio/ch_${chan.id}`);
-            let first = true;
+            
             chatRef.on('value', snap => {
-                if (first) { first = false; ui.status.innerText = "STANDBY"; return; }
                 const msg = snap.val();
+                // Игнорируем первый запуск или пустое сообщение
+                if (isFirstLoad) { 
+                    isFirstLoad = false; 
+                    ui.status.innerText = "STANDBY";
+                    return; 
+                }
                 if (msg) playRadioSpeech(msg);
             });
         }
 
         ui.knob.onclick = () => changeChannel(1);
+        
         ui.btn.onclick = () => {
             initAudio();
             const val = ui.input.value.trim();
             if (val && !isReceiving) {
-                playRadioSound('radioon'); // Пшик при нажатии тангенты
+                playRadioSound('radioon');
                 chatRef.set(val);
                 ui.input.value = '';
                 ui.status.innerText = "TRANSMITTING...";
                 setTimeout(() => { 
-                    playRadioSound('radiooff'); // Пшик при отпускании
+                    playRadioSound('radiooff');
                     ui.status.innerText = "STANDBY"; 
-                }, 1200);
+                }, 1500);
             }
         };
 
