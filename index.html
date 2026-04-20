@@ -255,6 +255,61 @@
             noiseNode.start(0);
         }
 
+        // 1. Создаем узел шума с фильтрацией
+function getEnhancedNoise() {
+    if (!audioCtx) return null;
+
+    // Создаем буфер с белым шумом
+    const bufferSize = audioCtx.sampleRate * 2;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Наполняем случайными числами
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    // ФИЛЬТР 1: Bandpass (делает звук "узким", как в рации)
+    const bandpass = audioCtx.createBiquadFilter();
+    bandpass.type = "bandpass";
+    bandpass.frequency.value = 1200; // Частота помех
+    bandpass.Q.value = 0.5;
+
+    // ФИЛЬТР 2: Highpass (убирает лишний бас, оставляя только "песок")
+    const highpass = audioCtx.createBiquadFilter();
+    highpass.type = "highpass";
+    highpass.frequency.value = 800;
+
+    // Узел громкости
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0; // По умолчанию тишина
+
+    // Соединяем цепочку: Источник -> Фильтр1 -> Фильтр2 -> Громкость -> Динамики
+    source.connect(bandpass);
+    bandpass.connect(highpass);
+    highpass.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    source.start();
+    return gainNode; // Возвращаем узел управления громкостью
+}
+
+// Глобальная переменная для управления шумом
+let radioStatic = null;
+
+// Функция для включения/выключения шума с "пшиком"
+function toggleStatic(volume, duration) {
+    if (!radioStatic) radioStatic = getEnhancedNoise();
+    
+    const now = audioCtx.currentTime;
+    // Плавное появление или исчезновение шума
+    radioStatic.gain.linearRampToValueAtTime(volume, now + duration);
+}
+
         function setNoiseVolume(vol, rampTime = 0.01) {
             if (!audioCtx) return;
             // Ищем gain узел шума
