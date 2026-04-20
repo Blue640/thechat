@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Military Radio Chat</title>
+    <title>TheChat Radio</title>
     <style>
         body { background: #1a1d1a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: 'Courier New', monospace; }
         .radio-unit {
@@ -18,7 +18,7 @@
         .freq { font-size: 1.4em; font-weight: bold; color: #92b721; text-shadow: 0 0 5px #92b721; }
         #messageInput {
             background: #222; border: 2px solid #444; color: #92b721; padding: 12px;
-            font-family: inherit; font-size: 16px; outline: none; border-radius: 5px;
+            font-family: inherit; font-size: 16px; outline: none; border-radius: 5px; width: calc(100% - 28px);
         }
         .send-btn {
             background: #6d1a1a; color: white; border: 3px solid #222; padding: 15px;
@@ -39,72 +39,69 @@
         <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР</button>
     </div>
 
-    <script type="module">
-        // Используем современный импорт напрямую из Google
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, set, onValue } from "https://gstatic.com";
+    <!-- Подключаем Firebase через надежный старый метод -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 
+    <script>
         const firebaseConfig = {
             databaseURL: "https://firebasedatabase.app"
         };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const chatRef = ref(db, 'channels/100_5/message');
+        
+        // Инициализация
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const chatRef = db.ref('channels/100_5/message');
 
         const input = document.getElementById('messageInput');
         const btn = document.getElementById('sendBtn');
         const status = document.getElementById('status');
-
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playRadioSound(type) {
+        function playSound(type) {
             if (type === 'start') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.frequency.setValueAtTime(880, audioCtx.currentTime);
+                g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                o.start(); o.stop(audioCtx.currentTime + 0.1);
             } else {
-                const bufferSize = audioCtx.sampleRate * 0.2;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-                const nGain = audioCtx.createGain();
-                nGain.gain.setValueAtTime(0.03, audioCtx.currentTime);
-                noise.connect(nGain); nGain.connect(audioCtx.destination);
-                noise.start();
+                const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+                const s = audioCtx.createBufferSource();
+                s.buffer = buf;
+                const gn = audioCtx.createGain();
+                gn.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                s.connect(gn); gn.connect(audioCtx.destination);
+                s.start();
             }
         }
 
         btn.onclick = () => {
-            const text = input.value.trim();
-            if (text) {
-                playRadioSound('start');
-                set(chatRef, text);
+            const val = input.value.trim();
+            if (val) {
+                playSound('start');
+                chatRef.set(val);
                 input.value = '';
                 status.innerText = "SENDING...";
             }
         };
 
-        let isInitial = true;
-        onValue(chatRef, (snapshot) => {
-            if (isInitial) { isInitial = false; return; }
-            const msg = snapshot.val();
+        // Слушаем эфир
+        let first = true;
+        chatRef.on('value', (snap) => {
+            if (first) { first = false; return; }
+            const msg = snap.val();
             status.innerText = "RECEIVING...";
-            playRadioSound('start');
+            playSound('start');
 
             setTimeout(() => {
                 const utter = new SpeechSynthesisUtterance(msg);
                 utter.lang = 'ru-RU';
-                utter.pitch = 0.7;
-                utter.onend = () => {
-                    playRadioSound('noise');
-                    status.innerText = "STANDBY";
-                };
+                utter.pitch = 0.8;
+                utter.onend = () => { playSound('noise'); status.innerText = "STANDBY"; };
                 window.speechSynthesis.speak(utter);
             }, 300);
         });
