@@ -3,528 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>TheChat GMRS-R7 Tactical</title>
+    <title>TheChat GMRS-R7 Custom</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --body-bg: #121412;
             --radio-base: #3c443c;
-            --metal-shine: rgba(255,255,255,0.05);
-            --lcd-bg: #879774;
             --lcd-glow: #a4b98c;
             --lcd-text: #1a2301;
             --btn-red: #8e271c;
-            --btn-red-hover: #b33124;
-            --input-bg: #1a1c1a;
         }
 
         body { 
             background: var(--body-bg); 
             background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36z8gAFWNgYGBkgAsgA7AGmBBMAAAVfwsL58H5wQAAAABJRU5ErkJggg==');
             display: flex; justify-content: center; align-items: center; 
-            height: 100vh; margin: 0; font-family: 'Courier New', monospace; color: #eee;
-            user-select: none; -webkit-touch-callout: none; overflow: hidden;
+            height: 100vh; margin: 0; font-family: 'Courier New', monospace;
         }
 
         .radio-unit {
             width: 360px; height: 600px;
             background: var(--radio-base);
             border: 5px solid #1a1c1a; border-radius: 20px;
-            padding: 25px;
-            box-shadow: 
-                inset 0 2px 5px rgba(255,255,255,0.1),
-                inset 0 -5px 15px rgba(0,0,0,0.5),
-                0 30px 60px rgba(0,0,0,0.8);
-            position: relative;
-            display: flex; flex-direction: column; align-items: center;
-        }
-
-        .radio-unit::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUAQMAAAD5b5H8AAAABlBMVEUAAAAAAAClZ7nPAAAAAXRSTlMAQObYZgAAADdJREFUKM9jYGBgYGBgYGBgYGBgYGBgYGAYwMDAwMDAwMDAwMCwAYOAgIGBgYGBgYGBgYGBYQAAb7YD/R7YvC0AAAAASUVORK5CYII=');
-            opacity: 0.15; pointer-events: none; border-radius: 15px;
-        }
-
-        .radio-unit::after {
-            content: ""; position: absolute; top: -50px; left: 40px; width: 20px; height: 60px;
-            background: #222; border-radius: 5px 5px 0 0;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+            padding: 25px; box-shadow: inset 0 2px 5px rgba(255,255,255,0.1), 0 30px 60px rgba(0,0,0,0.8);
+            position: relative; display: flex; flex-direction: column; align-items: center;
         }
 
         .speaker-grille {
-            width: 300px; height: 160px;
-            background-color: #222;
-            background-image: 
-                radial-gradient(#333 20%, transparent 20%),
-                radial-gradient(#333 20%, transparent 20%);
-            background-position: 0 0, 4px 4px;
-            background-size: 8px 8px;
-            border-radius: 12px;
-            border: 4px solid #111;
-            box-shadow: inset 0 5px 15px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05);
-            margin-bottom: 25px;
-            position: relative;
+            width: 300px; height: 160px; background-color: #222;
+            background-image: radial-gradient(#333 20%, transparent 20%), radial-gradient(#333 20%, transparent 20%);
+            background-position: 0 0, 4px 4px; background-size: 8px 8px;
+            border-radius: 12px; border: 4px solid #111; margin-bottom: 25px;
         }
-        
-        .speaker-grille::after { content: "FRS/GMRS - 22CH"; position: absolute; bottom: 5px; right: 10px; font-size: 8px; color: #555; font-family: sans-serif;}
 
         .screen-container {
             width: 280px; background: #111; border: 4px solid #0a0a0a;
             border-radius: 8px; padding: 5px; margin-bottom: 25px;
-            box-shadow: 0 2px 0 rgba(255,255,255,0.05), 0 5px 10px rgba(0,0,0,0.3);
-            position: relative;
         }
 
         .screen {
-            background: var(--lcd-bg);
-            height: 70px; border-radius: 4px;
+            background: #879774; height: 70px; border-radius: 4px;
             padding: 10px; display: flex; flex-direction: column;
-            justify-content: space-between; align-items: flex-start;
-            font-family: 'Orbitron', sans-serif;
-            color: var(--lcd-text);
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
-            position: relative;
-            transition: background 0.3s ease;
+            justify-content: space-between; font-family: 'Orbitron', sans-serif;
+            color: var(--lcd-text); position: relative;
         }
 
-        .screen.active {
-            background: var(--lcd-glow);
-            text-shadow: 0 0 3px rgba(0,0,0,0.5);
-        }
+        .screen.active { background: var(--lcd-glow); box-shadow: inset 0 0 15px rgba(0,0,0,0.2); }
 
-        .freq-display { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
-        .status-display { font-size: 11px; text-transform: uppercase; font-weight: 500; opacity: 0.8; }
-        .channel-label { position: absolute; right: 10px; bottom: 8px; font-size: 14px; font-weight: 700; }
+        .freq-display { font-size: 26px; font-weight: 700; }
+        .status-display { font-size: 11px; text-transform: uppercase; }
 
-        #fromDisplay { font-size: 10px; color: rgba(0,0,0,0.5); font-family: sans-serif; position: absolute; top: 5px; right: 5px; text-transform: uppercase;}
-
-        .controls-row {
-            display: flex; width: 100%; justify-content: center;
-            align-items: center; margin-bottom: 20px; gap: 40px;
-        }
-
-        .knob-container { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; text-transform: uppercase; color: #aaa; font-family: sans-serif;}
         .knob {
-            width: 55px; height: 55px;
-            background: #222; border-radius: 50%;
-            border: 4px solid #111;
-            box-shadow: 0 5px 0 #111, inset 0 2px 3px rgba(255,255,255,0.1), 0 8px 10px rgba(0,0,0,0.4);
-            position: relative; cursor: pointer;
-            transition: transform 0.2s ease-in-out;
+            width: 55px; height: 55px; background: #222; border-radius: 50%;
+            border: 4px solid #111; cursor: pointer; position: relative;
+            transition: transform 0.2s; margin-bottom: 20px;
         }
-        .knob::after {
-            content: ""; position: absolute; top: 5px; left: 50%; width: 5px; height: 22px;
-            background: #eee; border-radius: 2px; transform: translateX(-50%);
-            box-shadow: 0 0 2px rgba(0,0,0,0.5);
-        }
-        .knob:active { transform: translateY(2px) rotate(30deg); box-shadow: 0 3px 0 #111, inset 0 2px 3px rgba(255,255,255,0.1); }
+        .knob::after { content: ""; position: absolute; top: 5px; left: 50%; width: 5px; height: 22px; background: #eee; transform: translateX(-50%); }
 
         #messageInput {
-            width: 300px; background: var(--input-bg); border: 3px solid #111;
+            width: 300px; background: #1a1c1a; border: 3px solid #111;
             color: #92b721; padding: 14px; font-family: inherit; font-size: 16px;
-            outline: none; border-radius: 8px; margin-bottom: 20px;
-            box-shadow: inset 0 3px 6px rgba(0,0,0,0.6);
-            transition: border-color 0.2s;
+            border-radius: 8px; margin-bottom: 20px;
         }
-        #messageInput:focus { border-color: #555; }
-        #messageInput::placeholder { color: #444; }
 
-        .send-btn-container { position: relative; }
         .send-btn {
             width: 220px; background: var(--btn-red); color: white;
             border: 5px solid #111; padding: 18px;
-            font-weight: bold; font-size: 18px; cursor: pointer;
-            text-transform: uppercase; border-radius: 12px;
-            box-shadow: 0 8px 0 #4a1111, 0 10px 20px rgba(0,0,0,0.5);
-            transition: all 0.1s; position: relative;
-            font-family: sans-serif; letter-spacing: 1px;
+            font-weight: bold; cursor: pointer; border-radius: 12px;
+            box-shadow: 0 8px 0 #4a1111;
         }
-        .send-btn::after {
-            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px);
-            border-radius: 8px;
-        }
-        .send-btn:hover { background: var(--btn-red-hover); }
-        .send-btn:active {
-            transform: translateY(5px);
-            box-shadow: 0 3px 0 #4a1111, 0 4px 10px rgba(0,0,0,0.5);
-        }
-
-        .screw {
-            position: absolute; width: 14px; height: 14px;
-            background: #222; border-radius: 50%;
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.15), 0 1px 1px rgba(0,0,0,0.5);
-        }
-        .screw::after { content: ""; position: absolute; top: 6px; left: 1px; width: 12px; height: 2px; background: #111; transform: rotate(45deg); }
-        .top-l { top: 15px; left: 15px; } .top-r { top: 15px; right: 15px; }
-        .bot-l { bottom: 15px; left: 15px; } .bot-r { bottom: 15px; right: 15px; }
+        .send-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 #4a1111; }
 
     </style>
 </head>
 <body>
 
     <div class="radio-unit">
-        <div class="screw top-l"></div><div class="screw top-r"></div>
-        <div class="screw bot-l"></div><div class="screw bot-r"></div>
-
         <div class="speaker-grille"></div>
-
         <div class="screen-container">
             <div class="screen" id="lcdScreen">
-                <div id="fromDisplay">RCV</div>
-                <div class="freq-display" id="freqDisplay">---.--- MHz</div>
-                <div class="status-display" id="statusDisplay">SYSTEM OFFLINE</div>
-                <div class="channel-label">CH:<span id="channelNum">--</span></div>
+                <div class="freq-display" id="freqDisplay">---.---</div>
+                <div class="status-display" id="statusDisplay">OFFLINE</div>
+                <div style="font-size: 14px; align-self: flex-end;">CH:<span id="channelNum">--</span></div>
             </div>
         </div>
-
-        <div class="controls-row">
-            <div class="knob-container">
-                <div class="knob" id="channelKnob" title="Кликните для смены канала"></div>
-                <div>CHANNEL</div>
-            </div>
-        </div>
-
-        <input type="text" id="messageInput" placeholder="ВВЕДИТЕ СООБЩЕНИЕ..." autocomplete="off">
-        <div class="send-btn-container">
-            <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР (PTT)</button>
-        </div>
+        <div class="knob" id="channelKnob"></div>
+        <input type="text" id="messageInput" placeholder="ПРИЕМ...">
+        <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // === КОНФИГУРАЦИЯ ===
         const firebaseConfig = {
-            // !!! ВСТАВЬ СЮДА СВОЙ URL !!!
             databaseURL: "https://thechat-ea344-default-rtdb.europe-west1.firebasedatabase.app/" 
         };
 
-        // 22 КАНАЛА FRS/GMRS
         const CHANNELS = [
             {id: 1, freq: "462.5625"}, {id: 2, freq: "462.5875"}, {id: 3, freq: "462.6125"},
-            {id: 4, freq: "462.6375"}, {id: 5, freq: "462.6625"}, {id: 6, freq: "462.6875"},
-            {id: 7, freq: "462.7125"}, {id: 8, freq: "467.5625"}, {id: 9, freq: "467.5875"},
-            {id: 10, freq: "467.6125"}, {id: 11, freq: "467.6375"}, {id: 12, freq: "467.6625"},
-            {id: 13, freq: "467.6875"}, {id: 14, freq: "467.7125"}, {id: 15, freq: "462.5500"},
-            {id: 16, freq: "462.5750"}, {id: 17, freq: "462.6000"}, {id: 18, freq: "462.6250"},
-            {id: 19, freq: "462.6500"}, {id: 20, freq: "462.6750"}, {id: 21, freq: "462.7000"},
-            {id: 22, freq: "462.7250"}
+            {id: 4, freq: "467.5625"}, {id: 5, freq: "467.5875"}, {id: 6, freq: "467.6125"}
         ];
-        // ===================
 
-        // UI Элементы
         const ui = {
             screen: document.getElementById('lcdScreen'),
             freq: document.getElementById('freqDisplay'),
             status: document.getElementById('statusDisplay'),
             chanNum: document.getElementById('channelNum'),
-            from: document.getElementById('fromDisplay'),
             knob: document.getElementById('channelKnob'),
             input: document.getElementById('messageInput'),
             btn: document.getElementById('sendBtn')
         };
 
-        // Состояние рации
         let currentChannelIndex = 0;
         let db = null;
         let chatRef = null;
-        let firstLoad = true;
         let isReceiving = false;
-
-        // Звуковой движок (Web Audio API)
         let audioCtx = null;
-        let noiseGain = null; // Постоянный шум (Скельч)
-        let radioSpeechGain = null; // Для голоса
-        let bandpassFilter = null; // Рацийный фильтр
-        let callTonesOn = false;
+        let noiseGain = null;
+        let radioFilter = null;
 
-        // Инициализация звука (нужен клик пользователя)
-        function initAudioContext() {
+        function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            setupAudioChain();
-        }
+            
+            // Фильтр рации (Bandpass) - обрезает лишнее для реализма
+            radioFilter = audioCtx.createBiquadFilter();
+            radioFilter.type = "bandpass";
+            radioFilter.frequency.value = 1200;
+            radioFilter.Q.value = 0.8;
+            radioFilter.connect(audioCtx.destination);
 
-        // --- ЗВУКОВАЯ ЦЕПОЧКА ---
-        function setupAudioChain() {
-            // 1. Генератор Шума (Скельч)
+            // Генератор фонового шума
             noiseGain = audioCtx.createGain();
-            noiseGain.gain.value = 0; // Изначально тишина
-            createEnhancedNoiseNode(noiseGain);
-
-            // 2. Узел для SpeechSynthesis и хрипов
-            radioSpeechGain = audioCtx.createGain();
-            radioSpeechGain.gain.value = 1;
-
-            // 3. ФИЛЬТР РАЦИИ (Bandpass)
-            // Он обрезает лишний бас и верх, оставляя только "телефонный" звук
-            bandpassFilter = audioCtx.createBiquadFilter();
-            bandpassFilter.type = "bandpass";
-            bandpassFilter.frequency.value = 1200; // Частота
-            bandpassFilter.Q.value = 0.6; // Узкость
-
-            // 4. Узел Хрипов (Distortion/WaveShaper)
-            // Мы будем его "включать" во время разговора для помех
-            const distortion = audioCtx.createWaveShaper();
-            distortion.curve = createDistortionCurve(10); // Степень хрипа
-            distortion.oversample = '4x';
-            distortion.connect(bandpassFilter); // Соединяем
-
-            // Соединяем цепочку: 
-            noiseGain.connect(bandpassFilter);
-            radioSpeechGain.connect(bandpassFilter);
-            //distortion.connect(bandpassFilter); // Мы не соединяем distortion напрямую, 
-            // мы будем подключать к нему audioSource по запросу.
-            // Но в HTML нельзя перехватить SpeechSynthesis напрямую,
-            // поэтому мы будем Distortion включать для ШУМА.
-
-            // Но в HTMLSpeechSynthesisUtterance мы не можем перехватить аудиопоток.
-            // Поэтому нам придется Хрипеть ШУМОМ.
-
-            // На самом деле, мы будем Distortion включать для ТОНОВ и ШУМА,
-            // чтобы они звучали "грязнее".
-            // А голос — мы просто добавим легкий шум в фон.
-            
-            // На самом деле, Distortion для тонов нам не нужен, мы их сами сгенерируем.
-            // Distortion для голоса — мы не можем сделать без костылей.
-            
-            // План Б: Хрип ШУМОМ.
-
-            bandpassFilter.connect(audioCtx.destination);
-        }
-
-        function createDistortionCurve(amount) {
-            var k = amount,
-                n_samples = 44100,
-                curve = new Float32Array(n_samples),
-                deg = Math.PI / 180,
-                i = 0,
-                x;
-            for ( ; i < n_samples; ++i ) {
-                x = i * 2 / n_samples - 1;
-                curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
-            }
-            return curve;
-        };
-
-        // --- ГЕНЕРАТОР ШУМА ---
-        function createEnhancedNoiseNode(gainNode) {
-            const bufferSize = audioCtx.sampleRate * 2;
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            noiseGain.gain.value = 0;
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
+            for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
             const source = audioCtx.createBufferSource();
             source.buffer = buffer; source.loop = true;
-
-            // Локальный фильтр шума
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = "bandpass";
-            filter.frequency.value = 1200;
-            filter.Q.value = 0.8;
-
-            source.connect(filter); filter.connect(gainNode);
+            source.connect(noiseGain); noiseGain.connect(radioFilter);
             source.start();
         }
 
-        // Автоматический Шумоподавитель (ПШТ)
-        function toggleStaticSquelch(volume, duration) {
-            if (!noiseGain) return;
-            const now = audioCtx.currentTime;
-            noiseGain.gain.linearRampToValueAtTime(volume, now + duration);
-        }
-
-        // Простой тон
-        function playTone(freq, dur, vol, type="sine") {
+        // ФУНКЦИЯ ВОСПРОИЗВЕДЕНИЯ ТВОИХ ЗВУКОВ
+        function playRadioSound(fileName) {
             if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-            
-            // Подключаем через общий рацийный фильтр
-            osc.connect(gain); gain.connect(bandpassFilter);
-            osc.start(); osc.stop(audioCtx.currentTime + dur);
-        }
-        
-        // Характерный Roger Beep раций GMRS (Ту-ду-ду-ду)
-        function playRogerBeepTactical() {
-            if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-            playTone(880, 0.08, 0.04, "sine"); 
-            setTimeout(() => playTone(1100, 0.08, 0.04, "sine"), 80);
-            setTimeout(() => playTone(1300, 0.08, 0.04, "sine"), 160);
-            setTimeout(() => playTone(950, 0.08, 0.04, "sine"), 240);
+            // Путь к файлу в твоем репозитории
+            const audio = new Audio(`./${fileName}.mp3`); 
+            const source = audioCtx.createMediaElementSource(audio);
+            source.connect(radioFilter); // Пропускаем звук через фильтр рации
+            audio.play();
         }
 
-        // ТОТ САМЫЙ "ХИЛАК" и Хрип (Случайные искажения шума)
-        // Мы будем имитировать искажения, на долю секунды увеличивая шум во время приема
-        function playRandomInterference(utter, text) {
-            if (!audioCtx) return;
-            
-            const words = text.split(' ');
-            const wordCount = words.length;
-            
-            // Если текст длинный, шанс искажения выше
-            const interferenceCount = Math.floor(wordCount / 5) + (Math.random() < 0.4 ? 1 : 0);
-
-            let distortionTimeouts = [];
-
-            utter.onstart = () => {
-                // ЕслиinterferenceCount > 0, мы устанавливаем таймеры на "хрип"
-                for (let i = 0; i < interferenceCount; i++) {
-                    const time = Math.random() * (wordCount * 0.5) * 1000; // Примерное время
-                    const interferenceDuration = Math.random() * 0.3 + 0.1; // Длительность
-
-                    distortionTimeouts.push(setTimeout(() => {
-                        // Резкий всплеск шума для имитации хрипа (ПШТ-бик)
-                        toggleStaticSquelch(0.12, 0.03);
-                        
-                        setTimeout(() => {
-                            // Возвращаемся к фоновому шипению
-                            toggleStaticSquelch(0.04, 0.1);
-                        }, interferenceDuration * 1000);
-
-                    }, time));
-                }
-            };
-            
-            // Обязательно чистим таймеры, если голос прервался
-            utter.onend = () => { distortionTimeouts.forEach(clearTimeout); };
-        }
-
-        // --- ЛОГИКА ПРИЕМА (ГОЛОС + ШУМ) ---
         function playRadioSpeech(text) {
-            if (!audioCtx) return;
+            if (isReceiving) return;
             isReceiving = true;
             ui.status.innerText = "RECEIVING...";
             
-            // Включаем "автоскельч" (ПШТ в начале)
-            toggleStaticSquelch(0.15, 0.05);
+            // 1. Звук ВКЛЮЧЕНИЯ рации
+            playRadioSound('radioon');
             
-            // Через 150мс уводим в фоновый тихий шум эфира
-            setTimeout(() => toggleStaticSquelch(0.04, 0.1), 150);
-
-            // Короткий тон начала приема (ПИ-БИК)
-            playTone(600, 0.1, 0.03, "sine");
-            setTimeout(() => playTone(800, 0.1, 0.03, "sine"), 80);
+            // 2. Легкий шум эфира ("хилак")
+            setTimeout(() => { noiseGain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.1); }, 100);
 
             setTimeout(() => {
                 const utter = new SpeechSynthesisUtterance(text);
                 const voices = window.speechSynthesis.getVoices();
-                // Ищем Google или системный русский голос
-                utter.voice = voices.find(v => v.lang === 'ru-RU' && v.name.includes('Google')) || voices.find(v => v.lang === 'ru-RU') || voices[0];
+                utter.voice = voices.find(v => v.lang === 'ru-RU') || voices[0];
                 utter.lang = 'ru-RU';
-                utter.pitch = 0.7; // "Радийный" окрас
-                utter.rate = 1.0; 
-
-                // Накладываем случайные искажения (ХИЛАК)
-                playRandomInterference(utter, text);
+                utter.pitch = 0.7; // Грубый голос
+                utter.rate = 1.0;
 
                 utter.onend = () => {
-                    // Короткий ПШШТ в конце
-                    toggleStaticSquelch(0.15, 0.05);
+                    // 3. Звук ВЫКЛЮЧЕНИЯ рации
+                    playRadioSound('radiooff');
+                    noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
                     
                     setTimeout(() => {
-                        toggleStaticSquelch(0, 0.3); // Выключаем шум совсем
-                        
-                        // ИГРАЕМ РОДЖЕР БИП
-                        playRogerBeepTactical();
-                        
                         ui.status.innerText = "STANDBY";
                         isReceiving = false;
-                    }, 150);
+                    }, 500);
                 };
                 window.speechSynthesis.speak(utter);
-            }, 500);
-        }
-
-        // === ЛОГИКА FIREBASE И КАНАЛОВ ===
-        function setupFirebase() {
-            if (firebaseConfig.databaseURL.includes("ВАШ-ПРОЕКТ")) {
-                ui.status.innerText = "CONFIG ERROR";
-                return;
-            }
-            try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
-                changeChannel(0); // Загрузить первый канал
-                ui.screen.classList.add('active');
-            } catch (e) {
-                console.error(e);
-                ui.status.innerText = "CONN ERROR";
-            }
+            }, 600);
         }
 
         function changeChannel(delta) {
-            initAudioContext(); // Пытаемся включить звук при взаимодействии
-
-            // Отписываемся от старого канала
+            initAudio();
             if (chatRef) chatRef.off();
-
             currentChannelIndex = (currentChannelIndex + delta + CHANNELS.length) % CHANNELS.length;
             const chan = CHANNELS[currentChannelIndex];
-
-            // Обновляем UI
             ui.chanNum.innerText = chan.id;
-            ui.freq.innerText = chan.freq + " MHz";
+            ui.freq.innerText = chan.freq;
             ui.status.innerText = "CONNECTING...";
-            ui.knob.style.transform = `rotate(${currentChannelIndex * (360 / CHANNELS.length)}deg)`; // Вращаем ручку
+            ui.knob.style.transform = `rotate(${currentChannelIndex * 60}deg)`;
 
-            // Звук переключения (щелчок)
-            playTone(1000, 0.05, 0.1, "sine");
-
-            // Подписываемся на новый канал
-            chatRef = db.ref(`radioData/gmrs_channel_${chan.id}/message`);
-            
-            firstLoad = true;
-            chatRef.on('value', (snap) => {
-                if (firstLoad) { 
-                    firstLoad = false; 
-                    ui.status.innerText = "STANDBY";
-                    return; 
-                }
+            chatRef = db.ref(`radio/ch_${chan.id}`);
+            let first = true;
+            chatRef.on('value', snap => {
+                if (first) { first = false; ui.status.innerText = "STANDBY"; return; }
                 const msg = snap.val();
-                if (msg && !isReceiving) {
-                    playRadioSpeech(msg);
-                }
+                if (msg) playRadioSpeech(msg);
             });
         }
 
-        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
-        
-        // Смена канала по клику на ручку
         ui.knob.onclick = () => changeChannel(1);
-
-        // Отправка (PTT)
         ui.btn.onclick = () => {
-            initAudioContext();
-            if (!db || isReceiving) return;
+            initAudio();
             const val = ui.input.value.trim();
-            if (val) {
-                // Звук нажатия кнопки (начала передачи)
-                playTone(600, 0.1, 0.1, "sine");
-                
+            if (val && !isReceiving) {
+                playRadioSound('radioon'); // Пшик при нажатии тангенты
                 chatRef.set(val);
                 ui.input.value = '';
                 ui.status.innerText = "TRANSMITTING...";
-                // Небольшая задержка перед возвратом в standby
-                setTimeout(() => { if(!isReceiving) ui.status.innerText = "STANDBY"; }, 1500);
+                setTimeout(() => { 
+                    playRadioSound('radiooff'); // Пшик при отпускании
+                    ui.status.innerText = "STANDBY"; 
+                }, 1200);
             }
         };
 
-        // Отправка по Enter
-        ui.input.onkeypress = (e) => { if(e.key === 'Enter') ui.btn.click(); };
-
-        // Старт
-        window.onload = setupFirebase;
-        // Предзагрузка голосов
-        window.speechSynthesis.getVoices();
-
+        window.onload = () => {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+            changeChannel(0);
+            ui.screen.classList.add('active');
+        };
     </script>
 </body>
 </html>
