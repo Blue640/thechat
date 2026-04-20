@@ -25,7 +25,7 @@
             font-weight: bold; cursor: pointer; text-transform: uppercase; border-radius: 5px;
             box-shadow: 0 4px 0 #4a1111; transition: 0.1s;
         }
-        .send-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a1111; background: #8e271c; }
+        .send-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #4a1111; background: #8e271c; }
     </style>
 </head>
 <body>
@@ -33,84 +33,91 @@
     <div class="radio-unit">
         <div class="screen">
             <div class="freq">FREQ: 100.5 MHz</div>
-            <div style="font-size: 10px;" id="status">STANDBY</div>
+            <div style="font-size: 10px;" id="status">INITIALIZING...</div>
         </div>
         <input type="text" id="messageInput" placeholder="ВВЕДИТЕ ТЕКСТ..." autocomplete="off">
         <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР</button>
     </div>
 
-    <!-- Новое подключение Firebase через cdnjs (более надежно) -->
-    <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
+        // ТВОИ ДАННЫЕ ИЗ КОНСОЛИ FIREBASE
         const firebaseConfig = {
-            databaseURL: "https://firebasedatabase.app"
+            databaseURL: "https://ВАШ-ПРОЕКТ.firebasedatabase.app" 
         };
         
-        // Ждем полной загрузки скриптов
-        window.onload = function() {
-            if (typeof firebase !== 'undefined') {
-                firebase.initializeApp(firebaseConfig);
-                const db = firebase.database();
-                const chatRef = db.ref('channels/100_5/message');
+        // Проверка инициализации
+        if (firebaseConfig.databaseURL.includes("ВАШ-ПРОЕКТ")) {
+            document.getElementById('status').innerText = "CONFIG ERROR";
+        } else {
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+            const chatRef = db.ref('channels/100_5/message');
 
-                const input = document.getElementById('messageInput');
-                const btn = document.getElementById('sendBtn');
-                const status = document.getElementById('status');
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const input = document.getElementById('messageInput');
+            const btn = document.getElementById('sendBtn');
+            const status = document.getElementById('status');
+            
+            // AudioContext создаем после первого клика (требование браузеров)
+            let audioCtx;
 
-                function playSound(type) {
-                    if (type === 'start') {
-                        const o = audioCtx.createOscillator();
-                        const g = audioCtx.createGain();
-                        o.connect(g); g.connect(audioCtx.destination);
-                        o.frequency.setValueAtTime(880, audioCtx.currentTime);
-                        g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                        o.start(); o.stop(audioCtx.currentTime + 0.1);
-                    } else {
-                        const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
-                        const data = buf.getChannelData(0);
-                        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-                        const s = audioCtx.createBufferSource();
-                        s.buffer = buf;
-                        const gn = audioCtx.createGain();
-                        gn.gain.setValueAtTime(0.02, audioCtx.currentTime);
-                        s.connect(gn); gn.connect(audioCtx.destination);
-                        s.start();
-                    }
+            function playSound(type) {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if (type === 'start') {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    o.start(); o.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'noise') {
+                    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.3, audioCtx.sampleRate);
+                    const data = buf.getChannelData(0);
+                    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+                    const s = audioCtx.createBufferSource();
+                    s.buffer = buf;
+                    const gn = audioCtx.createGain();
+                    gn.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                    s.connect(gn); gn.connect(audioCtx.destination);
+                    s.start();
                 }
-
-                btn.onclick = () => {
-                    const val = input.value.trim();
-                    if (val) {
-                        playSound('start');
-                        chatRef.set(val);
-                        input.value = '';
-                        status.innerText = "SENDING...";
-                    }
-                };
-
-                let first = true;
-                chatRef.on('value', (snap) => {
-                    if (first) { first = false; return; }
-                    const msg = snap.val();
-                    status.innerText = "RECEIVING...";
-                    playSound('start');
-
-                    setTimeout(() => {
-                        const utter = new SpeechSynthesisUtterance(msg);
-                        utter.lang = 'ru-RU';
-                        utter.pitch = 0.8;
-                        utter.onend = () => { playSound('noise'); status.innerText = "STANDBY"; };
-                        window.speechSynthesis.speak(utter);
-                    }, 300);
-                });
-            } else {
-                document.getElementById('status').innerText = "ОШИБКА ПОДКЛЮЧЕНИЯ";
-                console.error("Firebase не загрузился!");
             }
-        };
+
+            btn.onclick = () => {
+                const val = input.value.trim();
+                if (val) {
+                    playSound('start');
+                    chatRef.set(val);
+                    input.value = '';
+                    status.innerText = "SENDING...";
+                    setTimeout(() => status.innerText = "STANDBY", 1000);
+                }
+            };
+
+            let first = true;
+            chatRef.on('value', (snap) => {
+                const msg = snap.val();
+                if (first || !msg) { first = false; status.innerText = "STANDBY"; return; }
+                
+                status.innerText = "RECEIVING...";
+                playSound('start');
+
+                setTimeout(() => {
+                    const utter = new SpeechSynthesisUtterance(msg);
+                    utter.lang = 'ru-RU';
+                    utter.pitch = 0.7; // Более грубый "рацийный" голос
+                    utter.rate = 0.9;
+                    utter.onend = () => { 
+                        playSound('noise'); 
+                        status.innerText = "STANDBY"; 
+                    };
+                    window.speechSynthesis.speak(utter);
+                }, 400);
+            });
+        }
     </script>
 </body>
 </html>
