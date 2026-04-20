@@ -3,107 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>Tactical Radio GMRS-R7</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <title>GMRS-R7 ELITE TACTICAL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --body-bg: #121412;
-            --radio-base: #3c443c;
-            --lcd-glow: #a4b98c;
-            --lcd-text: #1a2301;
-            --btn-red: #8e271c;
+            --body-bg: #0a0c10;
+            --radio-base: #1e252b;
+            --radio-accent: #2c363f;
+            --lcd-glow: #00d4ff; /* Твой любимый Dark Blue */
+            --lcd-bg: #051a24;
+            --btn-ptt: #c62828;
+            --led-red: #ff1744;
+            --led-green: #00e676;
         }
 
         body { 
             background: var(--body-bg); 
+            background-image: radial-gradient(#1a2a3a 1px, transparent 1px);
+            background-size: 20px 20px;
             display: flex; justify-content: center; align-items: center; 
-            height: 100vh; margin: 0; font-family: 'Courier New', monospace;
+            height: 100vh; margin: 0; font-family: 'Orbitron', sans-serif;
+            color: #fff;
         }
 
-        /* Окно разблокировки звука */
+        /* Оверлей старта */
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100;
-            display: flex; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.95); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
         #startBtn {
-            padding: 20px 40px; font-size: 24px; font-family: 'Orbitron';
-            background: var(--btn-red); color: white; border: none; cursor: pointer; border-radius: 10px;
+            padding: 25px 50px; font-size: 20px; font-family: 'Orbitron';
+            background: none; color: var(--lcd-glow); border: 2px solid var(--lcd-glow);
+            cursor: pointer; border-radius: 5px; box-shadow: 0 0 15px var(--lcd-glow);
+            transition: 0.3s;
         }
+        #startBtn:hover { background: var(--lcd-glow); color: #000; }
 
         .radio-unit {
-            width: 340px; height: 580px;
+            width: 350px; height: 650px;
             background: var(--radio-base);
-            border: 5px solid #1a1c1a; border-radius: 20px;
-            padding: 20px; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            border: 6px solid #111; border-radius: 30px;
+            padding: 25px; box-shadow: 0 50px 100px rgba(0,0,0,0.9), inset 0 2px 10px rgba(255,255,255,0.1);
             position: relative; display: flex; flex-direction: column; align-items: center;
         }
 
+        /* Антенна */
+        .antenna {
+            position: absolute; top: -80px; left: 50px; width: 22px; height: 90px;
+            background: #111; border-radius: 5px 5px 0 0;
+            box-shadow: inset -5px 0 5px #222;
+        }
+
+        .led-container {
+            display: flex; gap: 15px; margin-bottom: 10px; align-self: flex-start; margin-left: 20px;
+        }
+        .led { width: 10px; height: 10px; border-radius: 50%; background: #333; box-shadow: inset 0 1px 3px #000; }
+        .led.active-tx { background: var(--led-red); box-shadow: 0 0 10px var(--led-red); }
+        .led.active-rx { background: var(--led-green); box-shadow: 0 0 10px var(--led-green); }
+
         .speaker-grille {
-            width: 100%; height: 140px; background-color: #222;
-            background-image: radial-gradient(#333 20%, transparent 20%), radial-gradient(#333 20%, transparent 20%);
-            background-position: 0 0, 4px 4px; background-size: 8px 8px;
-            border-radius: 12px; border: 4px solid #111; margin-bottom: 20px;
+            width: 100%; height: 120px; background-color: #111;
+            background-image: linear-gradient(45deg, #111 25%, transparent 25%), linear-gradient(-45deg, #111 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #111 75%), linear-gradient(-45deg, transparent 75%, #111 75%);
+            background-size: 4px 4px; border-radius: 15px; border: 3px solid #222; margin-bottom: 20px;
         }
 
         .screen-container {
-            width: 260px; background: #111; border: 4px solid #0a0a0a;
-            border-radius: 8px; padding: 5px; margin-bottom: 20px;
+            width: 280px; background: #000; border: 4px solid #1a1a1a;
+            border-radius: 10px; padding: 10px; margin-bottom: 20px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,1);
         }
 
         .screen {
-            background: #879774; height: 80px; border-radius: 4px;
-            padding: 10px; display: flex; flex-direction: column;
-            justify-content: space-between; font-family: 'Orbitron', sans-serif;
-            color: var(--lcd-text); transition: background 0.3s;
+            background: var(--lcd-bg); height: 100px; border-radius: 5px;
+            padding: 12px; display: flex; flex-direction: column;
+            justify-content: space-between; color: var(--lcd-glow);
+            position: relative; overflow: hidden;
+            border: 1px solid rgba(0,212,255,0.2);
         }
 
-        .screen.active { background: var(--lcd-glow); }
+        /* Эффект линий на экране */
+        .screen::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.03) 3px);
+            pointer-events: none;
+        }
 
-        .freq-display { font-size: 24px; font-weight: 700; }
-        .status-display { font-size: 11px; text-transform: uppercase; font-weight: bold; }
+        .freq-display { font-size: 28px; font-weight: 700; letter-spacing: 2px; }
+        .status-display { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .signal-bar { display: flex; gap: 2px; align-items: flex-end; height: 15px; }
+        .bar { width: 4px; background: #1a303a; }
+        .bar.on { background: var(--lcd-glow); }
 
+        .controls { display: flex; gap: 30px; margin-bottom: 20px; }
+        .knob-wrap { text-align: center; font-size: 10px; color: #666; }
         .knob {
-            width: 50px; height: 50px; background: #222; border-radius: 50%;
+            width: 55px; height: 55px; background: #222; border-radius: 50%;
             border: 4px solid #111; cursor: pointer; position: relative;
-            transition: transform 0.2s; margin-bottom: 20px;
+            transition: transform 0.2s; margin-bottom: 5px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
         }
-        .knob::after { content: ""; position: absolute; top: 5px; left: 50%; width: 4px; height: 20px; background: #eee; transform: translateX(-50%); }
+        .knob::after { content: ""; position: absolute; top: 5px; left: 50%; width: 4px; height: 20px; background: var(--lcd-glow); transform: translateX(-50%); border-radius: 2px; }
+
+        .input-area { width: 100%; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 
         #messageInput {
-            width: 280px; background: #1a1c1a; border: 3px solid #111;
-            color: #92b721; padding: 12px; font-size: 16px;
-            border-radius: 8px; margin-bottom: 15px; outline: none;
+            width: 280px; background: #0a0c10; border: 2px solid #333;
+            color: var(--lcd-glow); padding: 12px; font-family: 'Orbitron'; font-size: 14px;
+            border-radius: 5px; outline: none; text-align: center;
         }
+        #messageInput:focus { border-color: var(--lcd-glow); }
 
         .ptt-btn {
-            width: 200px; background: var(--btn-red); color: white;
-            border: 4px solid #111; padding: 15px;
-            font-weight: bold; cursor: pointer; border-radius: 10px;
-            text-transform: uppercase;
+            width: 240px; background: var(--btn-ptt); color: white;
+            border: 4px solid #7b1313; padding: 18px;
+            font-weight: bold; cursor: pointer; border-radius: 50px;
+            text-transform: uppercase; font-family: 'Orbitron';
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4); transition: 0.1s;
         }
-        .ptt-btn:active { transform: translateY(3px); filter: brightness(1.2); }
+        .ptt-btn:active { transform: translateY(4px); box-shadow: 0 2px 10px rgba(0,0,0,0.6); filter: brightness(1.2); }
+
+        .privacy-code { font-size: 14px; color: #aaa; margin-top: 10px; }
+        #codeVal { color: var(--lcd-glow); font-weight: bold; }
 
     </style>
 </head>
 <body>
 
     <div id="overlay">
-        <button id="startBtn">START SYSTEM</button>
+        <h1 style="color: var(--lcd-glow); margin-bottom: 30px;">SYSTEM INITIALIZING...</h1>
+        <button id="startBtn">ENGAGE COMMS</button>
     </div>
 
     <div class="radio-unit">
+        <div class="antenna"></div>
+        <div class="led-container">
+            <div id="ledRX" class="led"></div>
+            <div id="ledTX" class="led"></div>
+        </div>
         <div class="speaker-grille"></div>
+        
         <div class="screen-container">
             <div class="screen" id="lcdScreen">
-                <div class="freq-display" id="freqDisplay">---.---</div>
-                <div class="status-display" id="statusDisplay">OFFLINE</div>
-                <div style="font-size: 12px; align-self: flex-end;">CH:<span id="channelNum">--</span></div>
+                <div class="signal-bar" id="signalMeter">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+                <div class="freq-display" id="freqDisplay">462.5625</div>
+                <div class="status-display" id="statusDisplay">READY_TO_SCAN</div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span>CH:<span id="channelNum">01</span></span>
+                    <span>CODE:<span id="codeDisplay">00</span></span>
+                </div>
             </div>
         </div>
-        <div class="knob" id="channelKnob"></div>
-        <input type="text" id="messageInput" placeholder="ВВОД...">
-        <button class="ptt-btn" id="sendBtn">ВЫЙТИ В ЭФИР</button>
+
+        <div class="controls">
+            <div class="knob-wrap">
+                <div class="knob" id="channelKnob"></div>
+                CHANNEL
+            </div>
+            <div class="knob-wrap">
+                <div class="knob" id="codeKnob"></div>
+                PRIVACY
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="ENTER INTEL..." maxlength="50">
+            <button class="ptt-btn" id="sendBtn">TRANSMIT</button>
+            <div class="privacy-code">ENCRYPTION: <span id="codeVal">DES-X</span></div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -114,42 +184,48 @@
             databaseURL: "https://thechat-ea344-default-rtdb.europe-west1.firebasedatabase.app/" 
         };
 
+        // 22 КАНАЛА GMRS
         const CHANNELS = [
-            {id: 1, freq: "462.5625"}, {id: 2, freq: "462.5875"}, {id: 3, freq: "462.6125"}
+            "462.5625", "462.5875", "462.6125", "462.6375", "462.6625", "462.6875", "462.7125",
+            "467.5625", "467.5875", "467.6125", "467.6375", "467.6625", "467.6875", "467.7125",
+            "462.5500", "462.5750", "462.6000", "462.6250", "462.6500", "462.6750", "462.7000", "462.7250"
         ];
 
-        let currentChannelIndex = 0;
-        let db, chatRef, audioCtx, noiseGain, radioFilter;
+        let db, chatRef;
+        let audioCtx, noiseGain, radioFilter;
+        let currentCH = 0;
+        let currentCODE = 0; // Наш CTCSS/DCS код
         let isReceiving = false;
         let isFirstLoad = true;
-        let myLastMessage = ""; // Чтобы не слушать самого себя
+        let myLastMessage = "";
 
         const ui = {
             screen: document.getElementById('lcdScreen'),
             freq: document.getElementById('freqDisplay'),
             status: document.getElementById('statusDisplay'),
             chanNum: document.getElementById('channelNum'),
-            knob: document.getElementById('channelKnob'),
+            codeDisp: document.getElementById('codeDisplay'),
+            chKnob: document.getElementById('channelKnob'),
+            coKnob: document.getElementById('codeKnob'),
             input: document.getElementById('messageInput'),
             btn: document.getElementById('sendBtn'),
-            overlay: document.getElementById('overlay')
+            ledRX: document.getElementById('ledRX'),
+            ledTX: document.getElementById('ledTX'),
+            signal: document.getElementById('signalMeter')
         };
 
-        // Инициализация при нажатии СТАРТ
         document.getElementById('startBtn').onclick = () => {
-            ui.overlay.style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
             initAudio();
             initFirebase();
         };
 
         function initAudio() {
-            if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
             radioFilter = audioCtx.createBiquadFilter();
             radioFilter.type = "bandpass";
-            radioFilter.frequency.value = 1200;
-            radioFilter.Q.value = 1.0;
+            radioFilter.frequency.value = 1400; // Немного сместил частоту для более "резкого" звука
+            radioFilter.Q.value = 1.2;
             radioFilter.connect(audioCtx.destination);
 
             noiseGain = audioCtx.createGain();
@@ -173,29 +249,38 @@
             audio.play().catch(() => {});
         }
 
+        function updateSignal(level) {
+            const bars = ui.signal.querySelectorAll('.bar');
+            bars.forEach((b, i) => b.classList.toggle('on', i < level));
+        }
+
         function playRadioSpeech(text) {
             if (isReceiving || !text || text === myLastMessage) return;
             
             isReceiving = true;
-            ui.status.innerText = "RECEIVING...";
+            ui.status.innerText = "INCOMING...";
+            ui.ledRX.classList.add('active-rx');
+            updateSignal(5);
             playRadioSound('radioon');
             
             setTimeout(() => { 
                 noiseGain.gain.setTargetAtTime(0.02, audioCtx.currentTime, 0.05); 
-            }, 200);
+            }, 250);
 
             setTimeout(() => {
                 const utter = new SpeechSynthesisUtterance(text);
                 const voices = window.speechSynthesis.getVoices();
                 utter.voice = voices.find(v => v.lang === 'ru-RU') || voices[0];
                 utter.lang = 'ru-RU';
-                utter.pitch = 0.8;
+                utter.pitch = 0.6; // Еще более низкий, "брутальный" голос
 
                 utter.onend = () => {
                     playRadioSound('radiooff');
                     noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+                    ui.ledRX.classList.remove('active-rx');
+                    updateSignal(0);
                     setTimeout(() => {
-                        ui.status.innerText = "STANDBY";
+                        ui.status.innerText = "ENCRYPTED";
                         isReceiving = false;
                     }, 500);
                 };
@@ -206,41 +291,56 @@
         function initFirebase() {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
-            changeChannel(0);
-            ui.screen.classList.add('active');
+            syncComms();
         }
 
-        function changeChannel(delta) {
+        // Ключевая функция - меняет путь в БД в зависимости от КАНАЛА и КОДА
+        function syncComms() {
             if (chatRef) chatRef.off();
             isFirstLoad = true;
-            currentChannelIndex = (currentChannelIndex + delta + CHANNELS.length) % CHANNELS.length;
-            const chan = CHANNELS[currentChannelIndex];
             
-            ui.chanNum.innerText = chan.id;
-            ui.freq.innerText = chan.freq;
+            ui.chanNum.innerText = (currentCH + 1).toString().padStart(2, '0');
+            ui.freq.innerText = CHANNELS[currentCH];
+            ui.codeDisp.innerText = currentCODE.toString().padStart(2, '0');
             ui.status.innerText = "SCANNING...";
-            ui.knob.style.transform = `rotate(${currentChannelIndex * 60}deg)`;
 
-            chatRef = db.ref(`radio/ch_${chan.id}`);
+            // Путь теперь включает код приватности!
+            chatRef = db.ref(`tactical/ch_${currentCH}/code_${currentCODE}`);
+            
             chatRef.on('value', snap => {
                 const msg = snap.val();
-                if (isFirstLoad) { isFirstLoad = false; ui.status.innerText = "STANDBY"; return; }
+                if (isFirstLoad) { isFirstLoad = false; ui.status.innerText = "ENCRYPTED"; return; }
                 playRadioSpeech(msg);
             });
         }
 
-        ui.knob.onclick = () => changeChannel(1);
+        ui.chKnob.onclick = () => {
+            currentCH = (currentCH + 1) % CHANNELS.length;
+            ui.chKnob.style.transform = `rotate(${currentCH * 16}deg)`;
+            syncComms();
+            playRadioSound('radiooff'); // Щелкающий звук при смене
+        };
+
+        ui.coKnob.onclick = () => {
+            currentCODE = (currentCODE + 1) % 100;
+            ui.coKnob.style.transform = `rotate(${currentCODE * 3.6}deg)`;
+            syncComms();
+            playRadioSound('radioon');
+        };
 
         ui.btn.onclick = () => {
             const val = ui.input.value.trim();
             if (val && !isReceiving) {
-                myLastMessage = val; // Запоминаем, что это отправили МЫ
+                myLastMessage = val;
+                ui.ledTX.classList.add('active-tx');
+                ui.status.innerText = "TRANSMITTING...";
                 chatRef.set(val);
                 ui.input.value = '';
-                ui.status.innerText = "TX...";
                 
-                // На своем устройстве просто вешаем STANDBY через секунду без звуков
-                setTimeout(() => { ui.status.innerText = "STANDBY"; }, 1500);
+                setTimeout(() => { 
+                    ui.ledTX.classList.remove('active-tx');
+                    ui.status.innerText = "ENCRYPTED"; 
+                }, 1500);
             }
         };
 
