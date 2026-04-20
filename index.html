@@ -150,7 +150,7 @@
         function playRadioSound(fileName) {
             if (!audioCtx) return;
             // Путь к файлу в твоем репозитории
-            const audio = new Audio(`./${fileName}.mp3`); 
+            const audio = new Audio(`./${fileName}.wav`); 
             const source = audioCtx.createMediaElementSource(audio);
             source.connect(radioFilter); // Пропускаем звук через фильтр рации
             audio.play();
