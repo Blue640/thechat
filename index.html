@@ -105,35 +105,29 @@
         }
 
         /* Кнопка PTT */
-.ptt-btn {
-    width: 100%;
-    /* Градиент создает эффект выпуклости */
-    background: linear-gradient(180deg, #242322 0%, #242323 100%);
-    color: #818176;
-    border: 2px solid #222222;
-    /* Жирная нижняя тень создает эффект высоты кнопки */
-    border-bottom: 8px solid #222222;
-    padding: 20px;
-    font-size: 18px;
-    font-weight: bold;
-    border-radius: 12px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.05s ease;
-    /* Внутренняя тень для эффекта мягкой резины */
-    box-shadow: inset 0 1px 3px rgba(255,255,255,0.2), 0 5px 15px rgba(0,0,0,0.5);
-    font-family: 'Orbitron', sans-serif;
-}
+        .ptt-btn {
+            width: 100%;
+            background: linear-gradient(180deg, #242322 0%, #242323 100%);
+            color: #818176;
+            border: 2px solid #222222;
+            border-bottom: 8px solid #222222;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.05s ease;
+            box-shadow: inset 0 1px 3px rgba(255,255,255,0.2), 0 5px 15px rgba(0,0,0,0.5);
+            font-family: 'Orbitron', sans-serif;
+        }
 
-.ptt-btn:active {
-    /* Кнопка уходит вниз на 6 пикселей */
-    transform: translateY(6px);
-    /* Нижняя "толщина" уменьшается, имитируя нажатие */
-    border-bottom-width: 2px;
-    /* Делаем чуть темнее при нажатии */
-    background: linear-gradient(180deg, #1b1b1b 0%, #1a1a1a 100%);
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
-}
+        .ptt-btn:active {
+            transform: translateY(6px);
+            border-bottom-width: 2px;
+            background: linear-gradient(180deg, #1b1b1b 0%, #1a1a1a 100%);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
 
         .footer-tag { margin-top: auto; font-size: 10px; color: #444; letter-spacing: 2px; padding-bottom: 5px; }
 
@@ -192,9 +186,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // Конфиг Firebase
         const firebaseConfig = { databaseURL: "https://thechat-ea344-default-rtdb.europe-west1.firebasedatabase.app/" };
-
         const FREQS = ["462.5625", "462.5875", "462.6125", "462.6375", "462.6625", "462.6875", "462.7125", "467.5625", "467.5875", "467.6125"];
 
         let db, chatRef, audioCtx, noiseGain, radioFilter;
@@ -247,7 +239,7 @@
         }
 
         function playSpeech(text) {
-            if (isReceiving || !text || text === myLast) return;
+            if (isReceiving || !text) return;
             isReceiving = true;
             ui.stat.innerText = "INCOMING";
             ui.rxLed.classList.add('active-rx');
@@ -285,25 +277,21 @@
 
             chatRef = db.ref(`tact/ch_${curCH}/co_${curCODE}`);
             chatRef.on('value', snap => {
-    const data = snap.val();
-    
-    // Если данных нет или это первая загрузка — просто выходим
-    if (!data || isFirst) { 
-        isFirst = false; 
-        ui.stat.innerText = "STANDBY"; 
-        return; 
-    }
+                const data = snap.val();
+                if (!data) return;
 
-    // Собираем уникальный ID из пришедших данных
-    const msgText = data.text || "";
-    const msgTime = data.time || 0;
-    const msgId = msgText + "_" + msgTime;
+                if (isFirst) { 
+                    isFirst = false; 
+                    ui.stat.innerText = "STANDBY"; 
+                    return; 
+                }
 
-    // ГЛАВНАЯ ПРОВЕРКА: если ID сообщения не совпадает с нашим последним отправленным
-    if (msgId !== myLast) {
-        playSpeech(msgText); // Читаем ТОЛЬКО текст, а не весь объект!
-    }
-});
+                const msgId = (data.text || "") + "_" + (data.time || 0);
+                if (msgId !== myLast && !isReceiving) {
+                    playSpeech(data.text);
+                }
+            });
+        }
 
         ui.chKnob.onclick = () => {
             curCH = (curCH + 1) % FREQS.length;
@@ -317,44 +305,31 @@
             sync();
         };
 
-ui.ptt.onclick = () => {
-    const val = ui.input.value.trim();
-    if (val && !isReceiving) {
-        playTone('radioon');
-        
-        const timestamp = Date.now();
-        // Запоминаем ID нашего сообщения ПЕРЕД отправкой
-        myLast = val + "_" + timestamp; 
-        
-        ui.txLed.classList.add('active-tx');
-        ui.stat.innerText = "TRANSMIT";
+        ui.ptt.onclick = () => {
+            const val = ui.input.value.trim();
+            if (val && !isReceiving) {
+                playTone('radioon'); 
+                
+                const timestamp = Date.now();
+                myLast = val + "_" + timestamp;
+                
+                ui.txLed.classList.add('active-tx');
+                ui.stat.innerText = "TRANSMIT";
 
-        // Отправляем объект в Firebase
-        chatRef.set({
-            text: val,
-            time: timestamp
-        });
+                chatRef.set({
+                    text: val,
+                    time: timestamp
+                });
 
-        ui.input.value = '';
+                ui.input.value = '';
 
-        setTimeout(() => { 
-            ui.txLed.classList.remove('active-tx');
-            ui.stat.innerText = "STANDBY"; 
-        }, 1200);
-    }
-};
+                setTimeout(() => { 
+                    ui.txLed.classList.remove('active-tx');
+                    ui.stat.innerText = "STANDBY"; 
+                }, 1200);
+            }
+        };
 
-        ui.input.value = '';
-
-        setTimeout(() => { 
-            ui.txLed.classList.remove('active-tx');
-            ui.stat.innerText = "STANDBY"; 
-        }, 1200);
-    }
-};
-
-
-        // Трюк для голоса на мобилках
         window.speechSynthesis.getVoices();
     </script>
 </body>
