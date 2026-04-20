@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Military Radio Chat</title>
+    <style>
+        body { background: #1a1d1a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: 'Courier New', monospace; }
+        .radio-unit {
+            width: 320px; background: #353d35; border: 6px solid #222; border-radius: 10px;
+            padding: 20px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 20px 40px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; gap: 15px; color: #92b721;
+        }
+        .screen {
+            background: #1a2301; border: 4px solid #444; padding: 10px; height: 60px;
+            display: flex; flex-direction: column; justify-content: center; border-radius: 5px;
+        }
+        .freq { font-size: 1.4em; font-weight: bold; color: #92b721; text-shadow: 0 0 5px #92b721; }
+        #messageInput {
+            background: #222; border: 2px solid #444; color: #92b721; padding: 12px;
+            font-family: inherit; font-size: 16px; outline: none; border-radius: 5px;
+        }
+        .send-btn {
+            background: #6d1a1a; color: white; border: 3px solid #222; padding: 15px;
+            font-weight: bold; cursor: pointer; text-transform: uppercase; border-radius: 5px;
+            box-shadow: 0 4px 0 #4a1111; transition: 0.1s;
+        }
+        .send-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a1111; background: #8e271c; }
+    </style>
+</head>
+<body>
+
+    <div class="radio-unit">
+        <div class="screen">
+            <div class="freq">FREQ: 100.5 MHz</div>
+            <div style="font-size: 10px;" id="status">STANDBY</div>
+        </div>
+        <input type="text" id="messageInput" placeholder="ВВЕДИТЕ ТЕКСТ..." autocomplete="off">
+        <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР</button>
+    </div>
+
+    <script type="module">
+        // Используем современный импорт напрямую из Google
+        import { initializeApp } from "https://gstatic.com";
+        import { getDatabase, ref, set, onValue } from "https://gstatic.com";
+
+        const firebaseConfig = {
+            databaseURL: "https://firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const chatRef = ref(db, 'channels/100_5/message');
+
+        const input = document.getElementById('messageInput');
+        const btn = document.getElementById('sendBtn');
+        const status = document.getElementById('status');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playRadioSound(type) {
+            if (type === 'start') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else {
+                const bufferSize = audioCtx.sampleRate * 0.2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const nGain = audioCtx.createGain();
+                nGain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                noise.connect(nGain); nGain.connect(audioCtx.destination);
+                noise.start();
+            }
+        }
+
+        btn.onclick = () => {
+            const text = input.value.trim();
+            if (text) {
+                playRadioSound('start');
+                set(chatRef, text);
+                input.value = '';
+                status.innerText = "SENDING...";
+            }
+        };
+
+        let isInitial = true;
+        onValue(chatRef, (snapshot) => {
+            if (isInitial) { isInitial = false; return; }
+            const msg = snapshot.val();
+            status.innerText = "RECEIVING...";
+            playRadioSound('start');
+
+            setTimeout(() => {
+                const utter = new SpeechSynthesisUtterance(msg);
+                utter.lang = 'ru-RU';
+                utter.pitch = 0.7;
+                utter.onend = () => {
+                    playRadioSound('noise');
+                    status.innerText = "STANDBY";
+                };
+                window.speechSynthesis.speak(utter);
+            }, 300);
+        });
+    </script>
+</body>
+</html>
