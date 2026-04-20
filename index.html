@@ -178,9 +178,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // === КОНФИГУРАЦИЯ ===
+// === КОНФИГУРАЦИЯ ===
         const firebaseConfig = {
-            // !!! ВСТАВЬ СЮДА СВОЙ URL !!!
             databaseURL: "https://thechat-ea344-default-rtdb.europe-west1.firebasedatabase.app/" 
         };
 
@@ -190,9 +189,7 @@
             {id: 3, freq: "105.000"},
             {id: 4, freq: "107.975"}
         ];
-        // ===================
 
-        // UI Элементы
         const ui = {
             screen: document.getElementById('lcdScreen'),
             freq: document.getElementById('freqDisplay'),
@@ -203,196 +200,50 @@
             btn: document.getElementById('sendBtn')
         };
 
-        // Состояние рации
         let currentChannelIndex = 0;
         let db = null;
         let chatRef = null;
         let firstLoad = true;
         let isReceiving = false;
-
-        // Звуковой движок (Web Audio API)
         let audioCtx = null;
-        let noiseNode = null; // Постоянный шум
+        let radioStaticNode = null;
 
-        // Инициализация звука (нужен клик пользователя)
+        // Инициализация звука
         function initAudioContext() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            createNoiseGenerator();
+            radioStaticNode = createEnhancedNoise();
         }
 
-        // --- ГЕНЕРАЦИЯ ПОМЕХ (Розовый шум) ---
-        function createNoiseGenerator() {
-            const bufferSize = 2 * audioCtx.sampleRate;
-            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            let b0, b1, b2, b3, b4, b5, b6;
-            b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
-            
-            for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                b0 = 0.99886 * b0 + white * 0.0555179;
-                b1 = 0.99332 * b1 + white * 0.0750759;
-                b2 = 0.96900 * b2 + white * 0.1538520;
-                b3 = 0.86650 * b3 + white * 0.3104856;
-                b4 = 0.55000 * b4 + white * 0.5329522;
-                b5 = -0.7616 * b5 - white * 0.0168980;
-                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                output[i] *= 0.11; // Громкость
-                b6 = white * 0.115926;
-            }
+        // --- ГЕНЕРАТОР ШУМА ---
+        function createEnhancedNoise() {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
-            noiseNode = audioCtx.createBufferSource();
-            noiseNode.buffer = noiseBuffer;
-            noiseNode.loop = true;
-            
-            const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0, audioCtx.currentTime); // Изначально выключен
-            
-            noiseNode.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-            noiseGain.id = 'noiseGain'; // Для поиска
-            noiseNode.start(0);
-        }
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer; source.loop = true;
 
-        // 1. Создаем узел шума с фильтрацией
-function getEnhancedNoise() {
-    if (!audioCtx) return null;
-
-    // Создаем буфер с белым шумом
-    const bufferSize = audioCtx.sampleRate * 2;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    
-    // Наполняем случайными числами
-    for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-    }
-
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-
-    // ФИЛЬТР 1: Bandpass (делает звук "узким", как в рации)
-    const bandpass = audioCtx.createBiquadFilter();
-    bandpass.type = "bandpass";
-    bandpass.frequency.value = 1200; // Частота помех
-    bandpass.Q.value = 0.5;
-
-    // ФИЛЬТР 2: Highpass (убирает лишний бас, оставляя только "песок")
-    const highpass = audioCtx.createBiquadFilter();
-    highpass.type = "highpass";
-    highpass.frequency.value = 800;
-
-    // Узел громкости
-    const gainNode = audioCtx.createGain();
-    gainNode.gain.value = 0; // По умолчанию тишина
-
-    // Соединяем цепочку: Источник -> Фильтр1 -> Фильтр2 -> Громкость -> Динамики
-    source.connect(bandpass);
-    bandpass.connect(highpass);
-    highpass.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    source.start();
-    return gainNode; // Возвращаем узел управления громкостью
-}
-
-// Глобальная переменная для управления шумом
-let radioStatic = null;
-
-// Функция для включения/выключения шума с "пшиком"
-function toggleStatic(volume, duration) {
-    if (!radioStatic) radioStatic = getEnhancedNoise();
-    
-    const now = audioCtx.currentTime;
-    // Плавное появление или исчезновение шума
-    radioStatic.gain.linearRampToValueAtTime(volume, now + duration);
-}
-
-        function setNoiseVolume(vol, rampTime = 0.01) {
-            if (!audioCtx) return;
-            // Ищем gain узел шума
-            const destination = audioCtx.destination;
-            // Простой хак: храним gain node в переменной
-            window.noiseGainNode = window.noiseGainNode || audioCtx.createGain(); // create if not exist context scope
-            // Actually simpler:
-            const gainNode = audioCtx._noiseGain || audioCtx.createGain();
-            audioCtx._noiseGain = gainNode;
-            
-            gainNode.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + rampTime);
-        }
-        
-        // ВАЖНО: Исправленная функция шума.
-        let globalNoiseGain = null;
-        function getNoiseGain() {
-            if (!audioCtx) return null;
-            if (globalNoiseGain) return globalNoiseGain;
-            
-            const bufferSize = 2 * audioCtx.sampleRate;
-            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1; // Белый шум проще
-
-            const src = audioCtx.createBufferSource();
-            src.buffer = noiseBuffer; src.loop = true;
-            
-            globalNoiseGain = audioCtx.createGain();
-            globalNoiseGain.gain.setValueAtTime(0, audioCtx.currentTime); 
-            
-            // Фильтр для шума, чтобы он был "глухим"
             const filter = audioCtx.createBiquadFilter();
-            filter.type = "lowpass"; filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            filter.type = "bandpass";
+            filter.frequency.value = 1200;
+            filter.Q.value = 0.7;
 
-            src.connect(filter); filter.connect(globalNoiseGain); globalNoiseGain.connect(audioCtx.destination);
-            src.start(0);
-            return globalNoiseGain;
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0;
+
+            source.connect(filter); filter.connect(gainNode); gainNode.connect(audioCtx.destination);
+            source.start();
+            return gainNode;
         }
 
-        // --- ЭФФЕКТЫ РАЦИИ ДЛЯ ГОЛОСА ---
-        function playRadioSpeech(text) {
-            if (!audioCtx) return;
-            isReceiving = true;
-            ui.status.innerText = "RECEIVING...";
-            
-            // 1. Включаем тихий фоновый шум
-            const noiseGain = getNoiseGain();
-            noiseGain.gain.linearRampToValueAtTime(0.02, audioCtx.currentTime + 0.05);
-
-            // 2. Короткий писк начала приема
-            playTone(880, 0.08, 0.05);
-
-            // 3. Синтез речи
-            setTimeout(() => {
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'ru-RU';
-                utter.pitch = 0.6; // Низкий голос
-                utter.rate = 0.85; // Медленнее
-
-                // ХАК: Перехватываем аудиопоток речи (работает не во всех браузерах, но мы попробуем)
-                // Если не работает - голос будет чистым, но шум останется.
-                
-                utter.onend = () => {
-                    // Короткий шум в конце ("Пшшш")
-                    noiseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                    noiseGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-                    
-                    setTimeout(() => {
-                        ui.status.innerText = "STANDBY";
-                        isReceiving = false;
-                    }, 300);
-                };
-                
-                window.speechSynthesis.speak(utter);
-                
-                // Эффект рации через фильтры не применить к SpeechSynthesis напрямую без костылей,
-                // поэтому мы просто делаем голос ниже и добавляем фоновый шум.
-                // Это создает 80% реализма.
-
-            }, 200);
+        function toggleStatic(volume, duration) {
+            if (!radioStaticNode) return;
+            const now = audioCtx.currentTime;
+            radioStaticNode.gain.linearRampToValueAtTime(volume, now + duration);
         }
 
-        // Простой тон
         function playTone(freq, dur, vol) {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -404,87 +255,91 @@ function toggleStatic(volume, duration) {
             osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
 
+        // --- ЛОГИКА ПРИЕМА (ГОЛОС + ШУМ) ---
+        function playRadioSpeech(text) {
+            if (!audioCtx) return;
+            isReceiving = true;
+            ui.status.innerText = "RECEIVING...";
+            
+            // Включаем шум эфира
+            toggleStatic(0.04, 0.1);
 
-        // === ЛОГИКА FIREBASE И КАНАЛОВ ===
+            setTimeout(() => {
+                const utter = new SpeechSynthesisUtterance(text);
+                const voices = window.speechSynthesis.getVoices();
+                // Ищем человечный голос
+                utter.voice = voices.find(v => v.lang === 'ru-RU' && v.name.includes('Google'))  voices.find(v => v.lang === 'ru-RU')  voices[0];
+                utter.lang = 'ru-RU';
+                utter.pitch = 0.7; // "Радийный" окрас
+                utter.rate = 0.95;
+
+                utter.onend = () => {
+                    // Короткий всплеск шума в конце (ПШШТ)
+                    toggleStatic(0.15, 0.05);
+                    setTimeout(() => {
+                        toggleStatic(0, 0.4);
+                        playTone(440, 0.1, 0.03); // Roger Beep
+                        setTimeout(() => playTone(380, 0.1, 0.03), 100);
+                        ui.status.innerText = "STANDBY";
+                        isReceiving = false;
+                    }, 200);
+                };
+                window.speechSynthesis.speak(utter);
+            }, 300);
+        }
+
         function setupFirebase() {
-            if (firebaseConfig.databaseURL.includes("ВАШ-ПРОЕКТ")) {
-                ui.status.innerText = "CONFIG ERROR";
-                return;
-            }
             try {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.database();
-                changeChannel(0); // Загрузить первый канал
+                changeChannel(0);
                 ui.screen.classList.add('active');
             } catch (e) {
-                console.error(e);
                 ui.status.innerText = "CONN ERROR";
             }
         }
 
         function changeChannel(delta) {
-            initAudioContext(); // Пытаемся включить звук при взаимодействии
-
-            // Отписываемся от старого канала
+            initAudioContext();
+            if (!db) return;
             if (chatRef) chatRef.off();
 
             currentChannelIndex = (currentChannelIndex + delta + CHANNELS.length) % CHANNELS.length;
             const chan = CHANNELS[currentChannelIndex];
 
-            // Обновляем UI
             ui.chanNum.innerText = chan.id;
             ui.freq.innerText = chan.freq + " MHz";
-            ui.status.innerText = "CONNECTING...";
-            ui.knob.style.transform = `rotate(${currentChannelIndex * 60}deg)`; // Вращаем ручку
+            ui.knob.style.transform = rotate(${currentChannelIndex * 60}deg);
+            playTone(1000, 0.05, 0.1);
 
-            // Звук переключения (щелчок)
-            playTone(1200, 0.02, 0.1);
-
-            // Подписываемся на новый канал
-            chatRef = db.ref(`radioData/channel_${chan.id}/message`);
-            
+            chatRef = db.ref(radioData/channel_${chan.id}/message);
             firstLoad = true;
             chatRef.on('value', (snap) => {
-                if (firstLoad) { 
-                    firstLoad = false; 
-                    ui.status.innerText = "STANDBY";
-                    return; 
-                }
+                if (firstLoad) { firstLoad = false; ui.status.innerText = "STANDBY"; return; }
                 const msg = snap.val();
-                if (msg && !isReceiving) {
-                    playRadioSpeech(msg);
-                }
+                if (msg && !isReceiving) playRadioSpeech(msg);
             });
         }
 
-        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
-        
-        // Смена канала по клику на ручку
         ui.knob.onclick = () => changeChannel(1);
 
-        // Отправка (PTT)
         ui.btn.onclick = () => {
             initAudioContext();
-            if (!db) return;
+            if (!db || isReceiving) return;
             const val = ui.input.value.trim();
-            if (val && !isReceiving) {
-                // Звук нажатия кнопки (начало передачи)
-                playTone(660, 0.1, 0.1);
-                
+            if (val) {
+                playTone(600, 0.1, 0.1); // Писк нажатия PTT
                 chatRef.set(val);
                 ui.input.value = '';
                 ui.status.innerText = "TRANSMITTING...";
-                // Небольшая задержка перед возвратом в standby
-                setTimeout(() => { if(!isReceiving) ui.status.innerText = "STANDBY"; }, 1000);
+                setTimeout(() => { if(!isReceiving) ui.status.innerText = "STANDBY"; }, 1500);
             }
         };
 
-        // Отправка по Enter
         ui.input.onkeypress = (e) => { if(e.key === 'Enter') ui.btn.click(); };
-
-        // Старт
         window.onload = setupFirebase;
-
+        // Чтобы голоса успели загрузиться в некоторых браузерах
+        window.speechSynthesis.getVoices();
     </script>
 </body>
 </html>
