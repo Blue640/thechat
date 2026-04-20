@@ -305,25 +305,26 @@
 
 ui.ptt.onclick = () => {
     const val = ui.input.value.trim();
-    
-    // Проверяем: есть ли текст и не занята ли рация приемом
     if (val && !isReceiving) {
-        playTone('radioon'); // Звук нажатия
+        playTone('radioon');
         
-        myLast = val;
-        ui.txLed.classList.add('active-tx'); // Включаем красный свет
-        ui.stat.innerText = "TRANSMIT"; // Статус на экран
+        const timestamp = Date.now(); // Создаем уникальный штамп времени
+        myLast = val + "_" + timestamp; // Запоминаем уникальный ID сообщения
         
-        // 1. ОТПРАВКА В FIREBASE
-        chatRef.set(val); 
-        
-        // 2. ОЧИСТКА ПОЛЯ ВВОДА
-        ui.input.value = ''; 
+        ui.txLed.classList.add('active-tx');
+        ui.stat.innerText = "TRANSMIT";
 
-        // 3. ТАЙМЕР ЗАВЕРШЕНИЯ (через 1.2 секунды)
+        // Отправляем объект, а не просто строку
+        chatRef.set({
+            text: val,
+            time: timestamp
+        });
+
+        ui.input.value = '';
+
         setTimeout(() => { 
-            ui.txLed.classList.remove('active-tx'); // Гасим лампочку
-            ui.stat.innerText = "STANDBY"; // Возвращаем готовность
+            ui.txLed.classList.remove('active-tx');
+            ui.stat.innerText = "STANDBY"; 
         }, 1200);
     }
 };
