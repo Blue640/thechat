@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
     <title>TheChat Tactical Radio r7</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --body-bg: #2a2e2a;
+            --body-bg: #121412;
             --radio-base: #3c443c; /* Военный зеленый */
             --metal-shine: rgba(255,255,255,0.05);
             --lcd-bg: #879774; /* Цвет выключенного ЖК */
@@ -15,21 +15,22 @@
             --lcd-text: #1a2301;
             --btn-red: #8e271c;
             --btn-red-hover: #b33124;
+            --input-bg: #1a1c1a;
         }
 
         body { 
-            background: #121412; 
+            background: var(--body-bg); 
             background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIklEQVQIW2NkQAKrVq36z8gAFWNgYGBkgAsgA7AGmBBMAAAVfwsL58H5wQAAAABJRU5ErkJggg=='); /* Шум на фоне */
             display: flex; justify-content: center; align-items: center; 
             height: 100vh; margin: 0; font-family: 'Courier New', monospace; color: #eee;
-            user-select: none;
+            user-select: none; -webkit-touch-callout: none; overflow: hidden;
         }
 
         /* КОРПУС РАЦИИ */
         .radio-unit {
-            width: 360px; height: 580px;
+            width: 360px; height: 600px;
             background: var(--radio-base);
-            border: 4px solid #1a1c1a; border-radius: 15px;
+            border: 5px solid #1a1c1a; border-radius: 20px;
             padding: 25px;
             box-shadow: 
                 inset 0 2px 5px rgba(255,255,255,0.1),
@@ -37,47 +38,58 @@
                 0 30px 60px rgba(0,0,0,0.8);
             position: relative;
             display: flex; flex-direction: column; align-items: center;
-            overflow: hidden;
         }
 
         /* Текстура металла/пластика на корпусе */
         .radio-unit::before {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAABUAQMAAAD5b5H8AAAABlBMVEUAAAAAAAClZ7nPAAAAAXRSTlMAQObYZgAAADdJREFUKM9jYGBgYGBgYGBgYGBgYGBgYGAYwMDAwMDAwMDAwMCwAYOAgIGBgYGBgYGBgYGBYQAAb7YD/R7YvC0AAAAASUVORK5CYII=');
-            opacity: 0.15; pointer-events: none;
+            opacity: 0.15; pointer-events: none; border-radius: 15px;
+        }
+
+        /* Декоративная антенна */
+        .radio-unit::after {
+            content: ""; position: absolute; top: -50px; left: 40px; width: 20px; height: 60px;
+            background: #222; border-radius: 5px 5px 0 0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
         }
 
         /* Сетка динамика */
         .speaker-grille {
-            width: 280px; height: 160px;
+            width: 300px; height: 160px;
             background-color: #222;
             background-image: 
                 radial-gradient(#333 20%, transparent 20%),
                 radial-gradient(#333 20%, transparent 20%);
             background-position: 0 0, 4px 4px;
             background-size: 8px 8px;
-            border-radius: 10px;
-            border: 3px solid #111;
-            box-shadow: inset 0 5px 15px rgba(0,0,0,0.8);
-            margin-bottom: 20px;
+            border-radius: 12px;
+            border: 4px solid #111;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05);
+            margin-bottom: 25px;
+            position: relative;
         }
+        
+        .speaker-grille::after { content: "MODEL: CH-TACTICAL-R7"; position: absolute; bottom: 5px; right: 10px; font-size: 8px; color: #555; font-family: sans-serif;}
 
         /* ЖК ЭКРАН */
         .screen-container {
-            width: 260px; background: #222; border: 5px solid #111;
-            border-radius: 5px; padding: 5px; margin-bottom: 20px;
-            box-shadow: 0 2px 0 rgba(255,255,255,0.1);
+            width: 280px; background: #111; border: 4px solid #0a0a0a;
+            border-radius: 8px; padding: 5px; margin-bottom: 25px;
+            box-shadow: 0 2px 0 rgba(255,255,255,0.05), 0 5px 10px rgba(0,0,0,0.3);
+            position: relative;
         }
 
         .screen {
             background: var(--lcd-bg);
-            height: 70px; border-radius: 3px;
+            height: 70px; border-radius: 4px;
             padding: 10px; display: flex; flex-direction: column;
             justify-content: space-between; align-items: flex-start;
             font-family: 'Orbitron', sans-serif;
             color: var(--lcd-text);
             box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
             position: relative;
+            transition: background 0.3s ease;
         }
 
         /* Эффект свечения включенного экрана */
@@ -86,64 +98,79 @@
             text-shadow: 0 0 3px rgba(0,0,0,0.5);
         }
 
-        .freq-display { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+        .freq-display { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
         .status-display { font-size: 11px; text-transform: uppercase; font-weight: 500; opacity: 0.8; }
-        .channel-label { position: absolute; right: 10px; bottom: 8px; font-size: 14px; }
+        .channel-label { position: absolute; right: 10px; bottom: 8px; font-size: 14px; font-weight: 700; }
 
         /* ОРГАНЫ УПРАВЛЕНИЯ */
         .controls-row {
-            display: flex; width: 100%; justify-content: space-around;
-            align-items: center; margin-bottom: 20px;
+            display: flex; width: 100%; justify-content: center;
+            align-items: center; margin-bottom: 20px; gap: 40px;
         }
 
         /* Ручка переключения каналов */
-        .knob-container { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; text-transform: uppercase; color: #aaa; }
+        .knob-container { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; text-transform: uppercase; color: #aaa; font-family: sans-serif;}
         .knob {
-            width: 50px; height: 50px;
+            width: 55px; height: 55px;
             background: #222; border-radius: 50%;
-            border: 3px solid #111;
-            box-shadow: 0 4px 0 #111, inset 0 2px 3px rgba(255,255,255,0.1);
+            border: 4px solid #111;
+            box-shadow: 0 5px 0 #111, inset 0 2px 3px rgba(255,255,255,0.1), 0 8px 10px rgba(0,0,0,0.4);
             position: relative; cursor: pointer;
             transition: transform 0.2s ease-in-out;
         }
         .knob::after {
-            content: ""; position: absolute; top: 5px; left: 50%; width: 4px; height: 20px;
+            content: ""; position: absolute; top: 5px; left: 50%; width: 5px; height: 22px;
             background: #eee; border-radius: 2px; transform: translateX(-50%);
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
         }
+        .knob:active { transform: translateY(2px) rotate(30deg); box-shadow: 0 3px 0 #111, inset 0 2px 3px rgba(255,255,255,0.1); }
 
         /* Инпут текста */
         #messageInput {
-            width: 280px; background: #1a1c1a; border: 2px solid #111;
-            color: #92b721; padding: 12px; font-family: inherit; font-size: 15px;
-            outline: none; border-radius: 5px; margin-bottom: 15px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+            width: 300px; background: var(--input-bg); border: 3px solid #111;
+            color: #92b721; padding: 14px; font-family: inherit; font-size: 16px;
+            outline: none; border-radius: 8px; margin-bottom: 20px;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.6);
+            transition: border-color 0.2s;
         }
-        #messageInput::placeholder { color: #555; }
+        #messageInput:focus { border-color: #555; }
+        #messageInput::placeholder { color: #444; }
 
         /* КНОПКА PTT (Push-To-Talk) */
+        .send-btn-container { position: relative; }
         .send-btn {
-            width: 180px; background: var(--btn-red); color: white;
-            border: 4px solid #111; padding: 16px;
-            font-weight: bold; font-size: 16px; cursor: pointer;
-            text-transform: uppercase; border-radius: 8px;
-            box-shadow: 0 6px 0 #4a1111, 0 8px 15px rgba(0,0,0,0.5);
+            width: 220px; background: var(--btn-red); color: white;
+            border: 5px solid #111; padding: 18px;
+            font-weight: bold; font-size: 18px; cursor: pointer;
+            text-transform: uppercase; border-radius: 12px;
+            box-shadow: 0 8px 0 #4a1111, 0 10px 20px rgba(0,0,0,0.5);
             transition: all 0.1s; position: relative;
+            font-family: sans-serif; letter-spacing: 1px;
+        }
+        /* Текстура на кнопке */
+        .send-btn::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px);
+            border-radius: 8px;
         }
         .send-btn:hover { background: var(--btn-red-hover); }
         .send-btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #4a1111, 0 3px 5px rgba(0,0,0,0.5);
+            transform: translateY(5px);
+            box-shadow: 0 3px 0 #4a1111, 0 4px 10px rgba(0,0,0,0.5);
         }
 
         /* Декоративные винты */
         .screw {
-            position: absolute; width: 12px; height: 12px;
+            position: absolute; width: 14px; height: 14px;
             background: #222; border-radius: 50%;
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.2), 0 1px 1px rgba(0,0,0,0.5);
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.15), 0 1px 1px rgba(0,0,0,0.5);
         }
-        .screw::after { content: ""; position: absolute; top: 5px; left: 1px; width: 10px; height: 2px; background: #111; transform: rotate(45deg); }
+        .screw::after { content: ""; position: absolute; top: 6px; left: 1px; width: 12px; height: 2px; background: #111; transform: rotate(45deg); }
         .top-l { top: 15px; left: 15px; } .top-r { top: 15px; right: 15px; }
         .bot-l { bottom: 15px; left: 15px; } .bot-r { bottom: 15px; right: 15px; }
+
+        /* Метка опонента на экране */
+        #fromDisplay { font-size: 10px; color: rgba(0,0,0,0.5); font-family: sans-serif; position: absolute; top: 5px; right: 5px; text-transform: uppercase;}
 
     </style>
 </head>
@@ -157,6 +184,7 @@
 
         <div class="screen-container">
             <div class="screen" id="lcdScreen">
+                <div id="fromDisplay">RCV</div>
                 <div class="freq-display" id="freqDisplay">---.--- MHz</div>
                 <div class="status-display" id="statusDisplay">SYSTEM OFFLINE</div>
                 <div class="channel-label">CH:<span id="channelNum">--</span></div>
@@ -165,22 +193,25 @@
 
         <div class="controls-row">
             <div class="knob-container">
-                <div>CHANNEL</div>
                 <div class="knob" id="channelKnob" title="Кликните для смены канала"></div>
+                <div>CHANNEL</div>
             </div>
-            </div>
+        </div>
 
         <input type="text" id="messageInput" placeholder="ВВЕДИТЕ СООБЩЕНИЕ..." autocomplete="off">
-        <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР (PTT)</button>
+        <div class="send-btn-container">
+            <button class="send-btn" id="sendBtn">ВЫЙТИ В ЭФИР (PTT)</button>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-// === КОНФИГУРАЦИЯ ===
+        // === КОНФИГУРАЦИЯ ===
         const firebaseConfig = {
-            databaseURL: "https://thechat-ea344-default-rtdb.europe-west1.firebasedatabase.app/" 
+            // !!! ВСТАВЬ СЮДА СВОЙ URL !!!
+            databaseURL: "https://ВАШ-ПРОЕКТ.firebasedatabase.app" 
         };
 
         const CHANNELS = [
@@ -189,34 +220,40 @@
             {id: 3, freq: "105.000"},
             {id: 4, freq: "107.975"}
         ];
+        // ===================
 
+        // UI Элементы
         const ui = {
             screen: document.getElementById('lcdScreen'),
             freq: document.getElementById('freqDisplay'),
             status: document.getElementById('statusDisplay'),
             chanNum: document.getElementById('channelNum'),
+            from: document.getElementById('fromDisplay'),
             knob: document.getElementById('channelKnob'),
             input: document.getElementById('messageInput'),
             btn: document.getElementById('sendBtn')
         };
 
+        // Состояние рации
         let currentChannelIndex = 0;
         let db = null;
         let chatRef = null;
         let firstLoad = true;
         let isReceiving = false;
-        let audioCtx = null;
-        let radioStaticNode = null;
 
-        // Инициализация звука
+        // Звуковой движок (Web Audio API)
+        let audioCtx = null;
+        let staticNode = null; // Постоянный шум
+
+        // Инициализация звука (нужен клик пользователя)
         function initAudioContext() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            radioStaticNode = createEnhancedNoise();
+            staticNode = createEnhancedNoiseNode();
         }
 
         // --- ГЕНЕРАТОР ШУМА ---
-        function createEnhancedNoise() {
+        function createEnhancedNoiseNode() {
             const bufferSize = audioCtx.sampleRate * 2;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
@@ -227,11 +264,11 @@
 
             const filter = audioCtx.createBiquadFilter();
             filter.type = "bandpass";
-            filter.frequency.value = 1200;
-            filter.Q.value = 0.7;
+            filter.frequency.value = 1200; // Центр частоты
+            filter.Q.value = 0.8;
 
             const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 0;
+            gainNode.gain.value = 0; // По умолчанию тишина
 
             source.connect(filter); filter.connect(gainNode); gainNode.connect(audioCtx.destination);
             source.start();
@@ -239,107 +276,156 @@
         }
 
         function toggleStatic(volume, duration) {
-            if (!radioStaticNode) return;
+            if (!staticNode) return;
             const now = audioCtx.currentTime;
-            radioStaticNode.gain.linearRampToValueAtTime(volume, now + duration);
+            staticNode.gain.linearRampToValueAtTime(volume, now + duration);
         }
 
-        function playTone(freq, dur, vol) {
+        function playTone(freq, dur, vol, type="sine") {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
+            osc.type = type;
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             gain.gain.setValueAtTime(vol, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
+        
+        // ТОТ САМЫЙ "ТУ-ДУ-ДУ"
+        function playRogerBeepTuDuDu() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            // Ту
+            playTone(880, 0.08, 0.03, "sine"); 
+            // ду
+            setTimeout(() => playTone(700, 0.08, 0.03, "sine"), 80);
+            // ду
+            setTimeout(() => playTone(600, 0.08, 0.03, "sine"), 160);
+        }
 
-        // --- ЛОГИКА ПРИЕМА (ГОЛОС + ШУМ) ---
+        // --- ЭФФЕКТЫ ПРИЕМА ГОЛОСА ---
         function playRadioSpeech(text) {
             if (!audioCtx) return;
             isReceiving = true;
             ui.status.innerText = "RECEIVING...";
             
-            // Включаем шум эфира
+            // Включаем фоновый шум
             toggleStatic(0.04, 0.1);
+
+            // Короткий "ПШТ" в начале
+            playTone(150, 0.1, 0.05, "sawtooth");
 
             setTimeout(() => {
                 const utter = new SpeechSynthesisUtterance(text);
                 const voices = window.speechSynthesis.getVoices();
-                // Ищем человечный голос
-                utter.voice = voices.find(v => v.lang === 'ru-RU' && v.name.includes('Google'))  voices.find(v => v.lang === 'ru-RU')  voices[0];
+                // Ищем Google или системный русский голос
+                utter.voice = voices.find(v => v.lang === 'ru-RU' && v.name.includes('Google')) || voices.find(v => v.lang === 'ru-RU') || voices[0];
                 utter.lang = 'ru-RU';
-                utter.pitch = 0.7; // "Радийный" окрас
-                utter.rate = 0.95;
+                utter.pitch = 0.7; // Грубый голос
+                utter.rate = 1.0; 
 
                 utter.onend = () => {
-                    // Короткий всплеск шума в конце (ПШШТ)
+                    // Разрыв связи (ПШШТ)
                     toggleStatic(0.15, 0.05);
+                    
                     setTimeout(() => {
-                        toggleStatic(0, 0.4);
-                        playTone(440, 0.1, 0.03); // Roger Beep
-                        setTimeout(() => playTone(380, 0.1, 0.03), 100);
+                        toggleStatic(0, 0.3); // Выключаем шум
+                        
+                        // ИГРАЕМ ТУ-ДУ-ДУ
+                        playRogerBeepTuDuDu();
+                        
                         ui.status.innerText = "STANDBY";
                         isReceiving = false;
-                    }, 200);
+                    }, 150);
                 };
                 window.speechSynthesis.speak(utter);
             }, 300);
         }
 
+        // === ЛОГИКА FIREBASE И КАНАЛОВ ===
         function setupFirebase() {
+            if (firebaseConfig.databaseURL.includes("ВАШ-ПРОЕКТ")) {
+                ui.status.innerText = "CONFIG ERROR";
+                return;
+            }
             try {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.database();
-                changeChannel(0);
+                changeChannel(0); // Загрузить первый канал
                 ui.screen.classList.add('active');
             } catch (e) {
+                console.error(e);
                 ui.status.innerText = "CONN ERROR";
             }
         }
 
         function changeChannel(delta) {
-            initAudioContext();
-            if (!db) return;
+            initAudioContext(); // Пытаемся включить звук при взаимодействии
+
+            // Отписываемся от старого канала
             if (chatRef) chatRef.off();
 
             currentChannelIndex = (currentChannelIndex + delta + CHANNELS.length) % CHANNELS.length;
             const chan = CHANNELS[currentChannelIndex];
 
+            // Обновляем UI
             ui.chanNum.innerText = chan.id;
             ui.freq.innerText = chan.freq + " MHz";
-            ui.knob.style.transform = rotate(${currentChannelIndex * 60}deg);
-            playTone(1000, 0.05, 0.1);
+            ui.status.innerText = "CONNECTING...";
+            ui.knob.style.transform = `rotate(${currentChannelIndex * 60}deg)`; // Вращаем ручку
 
-            chatRef = db.ref(radioData/channel_${chan.id}/message);
+            // Звук переключения (щелчок)
+            playTone(1000, 0.05, 0.1, "sine");
+
+            // Подписываемся на новый канал
+            chatRef = db.ref(`radioData/channel_${chan.id}/message`);
+            
             firstLoad = true;
             chatRef.on('value', (snap) => {
-                if (firstLoad) { firstLoad = false; ui.status.innerText = "STANDBY"; return; }
+                if (firstLoad) { 
+                    firstLoad = false; 
+                    ui.status.innerText = "STANDBY";
+                    return; 
+                }
                 const msg = snap.val();
-                if (msg && !isReceiving) playRadioSpeech(msg);
+                if (msg && !isReceiving) {
+                    playRadioSpeech(msg);
+                }
             });
         }
 
+        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
+        
+        // Смена канала по клику на ручку
         ui.knob.onclick = () => changeChannel(1);
 
+        // Отправка (PTT)
         ui.btn.onclick = () => {
             initAudioContext();
             if (!db || isReceiving) return;
             const val = ui.input.value.trim();
             if (val) {
-                playTone(600, 0.1, 0.1); // Писк нажатия PTT
+                // Звук нажатия кнопки (начало передачи)
+                playTone(600, 0.1, 0.1, "sine");
+                
                 chatRef.set(val);
                 ui.input.value = '';
                 ui.status.innerText = "TRANSMITTING...";
+                // Небольшая задержка перед возвратом в standby
                 setTimeout(() => { if(!isReceiving) ui.status.innerText = "STANDBY"; }, 1500);
             }
         };
 
+        // Отправка по Enter
         ui.input.onkeypress = (e) => { if(e.key === 'Enter') ui.btn.click(); };
+
+        // Старт
         window.onload = setupFirebase;
-        // Чтобы голоса успели загрузиться в некоторых браузерах
+        // Предзагрузка голосов
         window.speechSynthesis.getVoices();
+
     </script>
 </body>
 </html>
