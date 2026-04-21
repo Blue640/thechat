@@ -34,6 +34,29 @@
             cursor: pointer; text-transform: uppercase; letter-spacing: 2px;
         }
 
+        /* Админ Панель */
+        #adminLogin, #adminPanel {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,20,0.95); z-index: 2000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; color: #00aaff; font-family: 'Courier New', monospace;
+        }
+        .admin-box {
+            border: 2px solid #00aaff; background: #000; padding: 30px; border-radius: 10px;
+            box-shadow: 0 0 20px #00aaff; width: 90%; max-width: 350px;
+        }
+        .admin-input {
+            background: #111; color: #0f0; border: 1px solid #00aaff; padding: 15px; margin-bottom: 20px; 
+            text-align: center; font-size: 18px; width: 100%; outline: none; font-weight: bold;
+        }
+        .admin-btn {
+            background: #002244; color: #00aaff; border: 1px solid #00aaff; padding: 15px; 
+            cursor: pointer; font-size: 16px; margin-bottom: 10px; width: 100%; transition: 0.2s; font-weight: bold;
+        }
+        .admin-btn:hover { background: #00aaff; color: #000; }
+        .admin-btn.red { border-color: #f00; color: #f00; background: #310000; }
+        .admin-btn.red:hover { background: #f00; color: #000; box-shadow: 0 0 15px #f00;}
+
         /* Основной корпус рации */
         .radio-unit {
             width: 90vw; max-width: 380px; background: var(--case-color); background-image: var(--plastic);
@@ -96,7 +119,7 @@
             transition: all 0.1s;
         }
         .key:active { transform: translateY(4px); box-shadow: 0 0 0 #0a0a0a; }
-        .key-cmd { color: #00aaff; font-size: 14px; } /* Синий акцент для спец-кнопок */
+        .key-cmd { color: #00aaff; font-size: 14px; }
         .key-ent { background: #2d5a27; color: #fff; }
         .key-clr { background: #6b2121; color: #fff; }
 
@@ -126,6 +149,24 @@
         <h2>GMRS-R64 PRO</h2>
         <p>СИСТЕМА ИНИЦИАЛИЗИРОВАНА</p>
         <button id="startBtn">ПОДКЛЮЧИТЬСЯ</button>
+    </div>
+
+    <div id="adminLogin">
+        <div class="admin-box">
+            <h3 style="margin-top:0;">SYS ADMIN LOGIN</h3>
+            <input type="password" id="adminPass" class="admin-input" placeholder="PASSWORD" autocomplete="off">
+            <button class="admin-btn" onclick="checkAdmin()">ENTER</button>
+            <button class="admin-btn" onclick="closeAdmin()">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="adminPanel">
+        <div class="admin-box">
+            <h3 style="margin-top:0; color: #fff;">BLUETRADE CONTROL</h3>
+            <p id="adminChInfo" style="font-size: 24px; font-weight: bold; color: #0f0; margin-bottom: 20px;">CH: -- CODE: --</p>
+            <button class="admin-btn red" id="jamBtn" onclick="toggleJam()">ЗАГЛУШИТЬ КАНАЛ</button>
+            <button class="admin-btn" onclick="closeAdmin()">ВЫХОД</button>
+        </div>
     </div>
 
     <div class="radio-unit">
@@ -168,7 +209,8 @@
             <button class="key key-cmd" onclick="pressKey('CD')">CD</button>
             
             <button class="key key-clr" onclick="pressKey('CLR')">CLR</button>
-            <button class="key" style="visibility: hidden;"></button> <button class="key key-ent" onclick="pressKey('ENT')">ENT</button>
+            <button class="key" style="visibility: hidden;"></button>
+            <button class="key key-ent" onclick="pressKey('ENT')">ENT</button>
         </div>
 
         <input type="text" id="msgInput" placeholder="> СООБЩЕНИЕ..." maxlength="100" autocomplete="off">
@@ -187,9 +229,13 @@
         let curCH = 1, curCODE = 0; 
         let isReceiving = false, isFirst = true, myLast = "";
         
-        // Переменные для клавиатуры
-        let inputMode = ''; // 'CH' или 'CD'
+        // Админка и Глушилка
+        let inputMode = ''; 
         let inputBuffer = '';
+        let secretBuffer = ''; 
+        let isAdmin = false;
+        let isChannelJammed = false;
+        let joinedBeforeBlock = false; // Флаг: был ли юзер на канале до включения глушилки
 
         const ui = {
             freq: document.getElementById('freqDisp'),
@@ -207,19 +253,47 @@
             initFirebase();
         };
 
+        // --- ЛОГИКА АДМИНКИ ---
+        window.checkAdmin = function() {
+            if(document.getElementById('adminPass').value === 'bluelll') {
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'flex';
+                document.getElementById('adminChInfo').innerText = `CH: ${curCH} | CODE: ${curCODE}`;
+                document.getElementById('adminPass').value = '';
+                isAdmin = true;
+            } else {
+                alert('ACCESS DENIED');
+                closeAdmin();
+            }
+        };
+
+        window.closeAdmin = function() {
+            document.getElementById('adminLogin').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('adminPass').value = '';
+        };
+
+        window.toggleJam = function() {
+            if(!chatRef) return;
+            isChannelJammed = !isChannelJammed;
+            // Используем update, чтобы не стереть текущие сообщения на канале
+            chatRef.update({ blocked: isChannelJammed });
+        };
+
         // --- ЛОГИКА КЛАВИАТУРЫ ---
         window.pressKey = function(key) {
-            if (isReceiving) return; // Блокируем ввод во время приема сообщения
+            if (isReceiving) return;
 
-            playTone('radioon'); // Короткий клик при нажатии (используем тот же звук)
+            // Изменен звук на button.mp3
+            playTone('button'); 
 
             if (key === 'CH') {
-                inputMode = 'CH'; inputBuffer = ''; 
+                inputMode = 'CH'; inputBuffer = ''; secretBuffer = '';
                 ui.stat.innerText = "SET CH"; ui.stat.classList.add('blinking');
                 ui.chVal.innerText = "--";
             } 
             else if (key === 'CD') {
-                inputMode = 'CD'; inputBuffer = ''; 
+                inputMode = 'CD'; inputBuffer = ''; secretBuffer = '';
                 ui.stat.innerText = "SET CODE"; ui.stat.classList.add('blinking');
                 ui.coVal.innerText = "--";
             } 
@@ -236,23 +310,32 @@
                     if (v >= 0 && v <= 99) curCODE = v;
                 }
                 resetInput();
-                sync(); // Переподключаемся к новой частоте
+                sync();
             } 
-            else { // Нажата цифра
+            else { 
+                // Ввод цифр
                 if (inputMode !== '') {
-                    // Ограничиваем длину: 3 цифры для канала (до 100), 2 для кода (до 99)
                     if ((inputMode === 'CH' && inputBuffer.length < 3) || 
                         (inputMode === 'CD' && inputBuffer.length < 2)) {
                         inputBuffer += key;
                         if (inputMode === 'CH') ui.chVal.innerText = inputBuffer;
                         if (inputMode === 'CD') ui.coVal.innerText = inputBuffer;
                     }
+                } else {
+                    // Режим ожидания: отслеживаем секретный код 640064
+                    secretBuffer += key;
+                    if (secretBuffer.length > 10) secretBuffer = secretBuffer.slice(-10); // Храним только последние 10 нажатий
+                    
+                    if (secretBuffer.includes('640064')) {
+                        document.getElementById('adminLogin').style.display = 'flex';
+                        secretBuffer = ''; // Сбрасываем буфер
+                    }
                 }
             }
         };
 
         function resetInput() {
-            inputMode = ''; inputBuffer = '';
+            inputMode = ''; inputBuffer = ''; secretBuffer = '';
             ui.stat.classList.remove('blinking');
             ui.stat.innerText = "STANDBY";
             updateDisplay();
@@ -261,12 +344,11 @@
         function updateDisplay() {
             ui.chVal.innerText = curCH.toString().padStart(2, '0');
             ui.coVal.innerText = curCODE.toString().padStart(2, '0');
-            // Генерируем "реалистичную" частоту на основе канала: 462.0000 + (Канал * 0.0125)
             let freq = 462.0000 + (curCH * 0.0125);
             ui.freq.innerText = freq.toFixed(4);
         }
 
-        // --- АУДИО И СИНТЕЗ ---
+        // --- АУДИО ---
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             radioFilter = audioCtx.createBiquadFilter();
@@ -288,8 +370,7 @@
 
         function playTone(file) {
             if (!audioCtx) return;
-            // Если нет файлов .wav, просто игнорируем ошибку
-            const audio = new Audio(`./${file}.wav`);
+            const audio = new Audio(`./${file}.mp3`); // Ищем .mp3 (можно поменять на .wav если у тебя wav)
             const src = audioCtx.createMediaElementSource(audio);
             src.connect(radioFilter);
             audio.play().catch(e => {}); 
@@ -300,24 +381,28 @@
             isReceiving = true;
             ui.stat.innerText = "INCOMING"; ui.stat.classList.add('blinking');
             ui.rxLed.classList.add('active-rx');
-            playTone('radioon');
+            playTone('radioon'); // Для передачи оставляем radioon
 
             setTimeout(() => { noiseGain.gain.setTargetAtTime(0.015, audioCtx.currentTime, 0.05); }, 200);
 
             setTimeout(() => {
                 const utter = new SpeechSynthesisUtterance(text);
-                utter.lang = 'ru-RU'; utter.pitch = 0.8; utter.rate = 1.1; // Немного ускорим для эффекта диспетчера
+                utter.lang = 'ru-RU'; utter.pitch = 0.8; utter.rate = 1.1;
                 utter.onend = () => {
-                    playTone('radiooff');
+                    playTone('radiooff'); // Конец передачи
                     noiseGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
                     ui.rxLed.classList.remove('active-rx');
-                    setTimeout(() => { ui.stat.innerText = "STANDBY"; ui.stat.classList.remove('blinking'); isReceiving = false; }, 400);
+                    setTimeout(() => { 
+                        ui.stat.classList.remove('blinking'); 
+                        ui.stat.innerText = (isChannelJammed && !joinedBeforeBlock && !isAdmin) ? "JAMMED" : "STANDBY";
+                        isReceiving = false; 
+                    }, 400);
                 };
                 window.speechSynthesis.speak(utter);
             }, 600);
         }
 
-        // --- FIREBASE СИНХРОНИЗАЦИЯ ---
+        // --- FIREBASE СИНХРОНИЗАЦИЯ И ЛОГИКА ГЛУШИЛКИ ---
         function initFirebase() {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
@@ -327,38 +412,80 @@
         function sync() {
             if (chatRef) chatRef.off();
             isFirst = true;
+            joinedBeforeBlock = false;
             updateDisplay();
             ui.stat.innerText = "SYNC...";
 
-            // Подключаемся к комнате: Канал 1-100, Код 0-99
             chatRef = db.ref(`tact100/ch_${curCH}/co_${curCODE}`);
             
             chatRef.on('value', snap => {
                 const data = snap.val();
+                
                 if (!data) {
-                    if(isFirst) { ui.stat.innerText = "STANDBY"; isFirst = false; }
+                    if(isFirst) { 
+                        ui.stat.innerText = "STANDBY"; 
+                        isFirst = false; 
+                        joinedBeforeBlock = true; // Канал чист, юзер успешно зашел до глушилки
+                    }
                     return;
+                }
+
+                // Проверяем статус глушилки
+                isChannelJammed = data.blocked || false;
+
+                // Обновляем кнопку в админке, если она открыта
+                if (document.getElementById('adminPanel').style.display === 'flex') {
+                    document.getElementById('jamBtn').innerText = isChannelJammed ? "РАЗБЛОКИРОВАТЬ КАНАЛ" : "ЗАГЛУШИТЬ КАНАЛ";
                 }
 
                 if (isFirst) { 
                     isFirst = false; 
-                    ui.stat.innerText = "STANDBY"; 
+                    if (isChannelJammed) {
+                        joinedBeforeBlock = false; // Юзер подключился к УЖЕ заглушенному каналу
+                        playTone('bloc');
+                        ui.stat.innerText = "JAMMED";
+                    } else {
+                        joinedBeforeBlock = true;  // Юзер подключился до глушения
+                        ui.stat.innerText = "STANDBY"; 
+                    }
                     return; 
                 }
 
+                // Обновление статуса UI если кто-то заглушил канал, пока мы тут сидим
+                if (isChannelJammed && !joinedBeforeBlock && !isAdmin) {
+                    ui.stat.innerText = "JAMMED";
+                } else if (!isChannelJammed) {
+                    ui.stat.innerText = "STANDBY";
+                    joinedBeforeBlock = true; // Если разблокировали, теперь все считаются "своими"
+                }
+
                 const msgId = (data.text || "") + "_" + (data.time || 0);
-                if (msgId !== myLast && !isReceiving) {
-                    playSpeech(data.text);
+                if (msgId !== myLast && !isReceiving && data.text) {
+                    // Если канал заглушен, и юзер не был тут до блока, и он не админ -> слышит bloc.mp3
+                    if (isChannelJammed && !joinedBeforeBlock && !isAdmin) {
+                        playTone('bloc');
+                    } else {
+                        // Те, кто был тут до включения глушилки, нормально слышат сообщение
+                        playSpeech(data.text);
+                    }
                 }
             });
         }
 
         // --- КНОПКА PTT (ОТПРАВКА) ---
         document.getElementById('pttBtn').onclick = () => {
+            // Если юзер "чужой" на заглушенном канале, не даем отправлять текст, просто играем звук блока
+            if (isChannelJammed && !joinedBeforeBlock && !isAdmin) {
+                playTone('bloc');
+                ui.stat.innerText = "JAMMED";
+                ui.stat.classList.add('blinking');
+                setTimeout(() => { ui.stat.classList.remove('blinking'); }, 1000);
+                return;
+            }
+
             const val = ui.input.value.trim();
-            // Блокируем отправку, если пусто, если идет прием, или если мы в режиме настройки канала
             if (val && !isReceiving && inputMode === '') {
-                playTone('radioon'); 
+                playTone('radioon'); // Передача как и раньше с radioon
                 
                 const timestamp = Date.now();
                 myLast = val + "_" + timestamp;
@@ -366,7 +493,7 @@
                 ui.txLed.classList.add('active-tx');
                 ui.stat.innerText = "TRANSMIT"; ui.stat.classList.add('blinking');
 
-                chatRef.set({
+                chatRef.update({
                     text: val,
                     time: timestamp
                 });
